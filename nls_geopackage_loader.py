@@ -21,16 +21,54 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
+import os
+import io
+import zipfile
+import xml.etree.ElementTree
+import requests
+
+from qgis.core import QgsVectorLayer, QgsMessageLog, QgsProject, QgsFeatureRequest
+from qgis.gui import QgsBusyIndicatorDialog
+from osgeo import ogr
+
+from PyQt5 import uic
+from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QTimer
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction
+from PyQt5.QtWidgets import QAction, QMessageBox
 
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
 from .nls_geopackage_loader_dialog import NLSGeoPackageLoaderDialog
-import os.path
 
+NLS_USER_KEY_DIALOG_FILE = "nls_geopackage_loader_dialog_NLS_user_key.ui"
+MUNICIPALITIES_DIALOG_FILE = "nls_geopackage_loader_dialog_municipality_selection.ui"
+
+MTK_ALL_PRODCUCTS_URL = "https://tiedostopalvelu.maanmittauslaitos.fi/tp/feed/mtp/maastotietokanta/kaikki"
+MTK_ALL_PRODCUCTS_DOWNLOAD_URL = "https://tiedostopalvelu.maanmittauslaitos.fi/tp/tilauslataus/tuotteet/maastotietokanta/kaikki"
+MTK_LAYERS_KEY_PREFIX = "MTK"
+MTK_ALL_PRODUCTS_TITLE = "Maastotietokanta, kaikki kohteet"
+MTK_PRODUCT_NAMES_PREFIX = "Maastotietokanta, "
+MTK_PRODUCT_NAMES = ["YhteisetTyypit", "Aallonmurtaja", "AidanSymboli", "Aita", "Allas", "AluemerenUlkoraja", "AmpumaAlue",
+                     "Ankkuripaikka", "Autoliikennealue", "HarvaLouhikko", "Hautausmaa", "Hietikko", "Hylky", "HylynSyvyys",
+                     "IlmaradanKannatinpylvas", "Ilmarata", "Jyrkanne", "Kaatopaikka", "Kaislikko", "KallioAlue", "KallioSymboli",
+                     "Kalliohalkeama", "Kansallispuisto", "Karttasymboli", "Kellotapuli", "Kivi", "Kivikko", "Korkeuskayra",
+                     "KorkeuskayranKorkeusarvo", "Koski", "KunnanHallintokeskus", "KunnanHallintoraja", "Kunta", "Lahde",
+                     "Lahestymisvalo", "Lentokenttaalue", "Louhos", "Luiska", "Luonnonpuisto", "Luonnonsuojelualue",
+                     "MaaAineksenottoalue", "Maasto2kuvionReuna", "MaastokuvionReuna", "Maatalousmaa", "MaatuvaVesialue",
+                     "Masto", "MastonKorkeus", "Matalikko", "MerkittavaLuontokohde", "MetsamaanKasvillisuus", "MetsamaanMuokkaus",
+                     "MetsanRaja", "Muistomerkki", "Muuntaja", "Muuntoasema", "Nakotorni", "Niitty", "Osoitepiste", "Paikannimi",
+                     "Pato", "Pelastuskoodipiste", "PistolaituriViiva", "Portti", "Puisto", "PutkijohdonSymboli", "Putkijohto",
+                     "Puu", "Puurivi", "RajavyohykkeenTakaraja", "Rakennelma", "Rakennus", "Rakennusreunaviiva", "Rautatie",
+                     "Rautatieliikennepaikka", "RautatienSymboli", "Retkeilyalue", "Sahkolinja", "SahkolinjanSymboli", "Savupiippu",
+                     "SavupiipunKorkeus", "Selite", "SisaistenAluevesienUlkoraja", "Soistuma", "Sulkuportti", "Suo", "SuojaAlue",
+                     "SuojaAlueenReunaviiva", "Suojametsa", "Suojanne", "SuojelualueenReunaviiva", "SuurjannitelinjanPylvas",
+                     "Syvyyskayra", "SyvyyskayranSyvyysarvo", "Syvyyspiste", "TaajaanRakennettuAlue", "TaajaanRakennetunAlueenReuna",
+                     "Taytemaa", "Tervahauta", "Tiesymboli", "Tienroteksti", "Tieviiva", "Tulentekopaikka", "TulvaAlue",
+                     "TunnelinAukko", "Turvalaite", "Tuulivoimala", "Uittolaite", "Uittoranni", "UlkoJaSisasaaristonRaja",
+                     "UrheiluJaVirkistysalue", "ValtakunnanRajapyykki", "Varastoalue", "Vedenottamo", "VedenpinnanKorkeusluku",
+                     "Vesiasteikko", "Vesikivi", "Vesikivikko", "Vesikulkuvayla", "VesikulkuvaylanKulkusuunta", "VesikulkuvaylanTeksti",
+                     "Vesikuoppa", "Vesitorni", "Viettoviiva", "Virtausnuoli", "VirtavesiKapea", "VirtavesiAlue"]
 
 class NLSGeoPackageLoader:
     """QGIS Plugin Implementation."""
@@ -68,6 +106,8 @@ class NLSGeoPackageLoader:
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
         self.first_start = None
+
+        self.initWithNLSData()
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -185,18 +225,367 @@ class NLSGeoPackageLoader:
     def run(self):
         """Run method that performs all the real work"""
 
+        self.nls_user_key = QSettings().value("/NLSgpkgloader/userKey", "", type=str)
+        self.data_download_dir = QSettings().value("/NLSgpkgloader/dataDownloadDir", "", type=str)
+        self.addDownloadedDataAsLayer = QSettings().value("/NLSgpkgloader/addDownloadedDataAsLayer", True, type=bool)
+        self.maxNumberOfLayersToAdd = QSettings().value("/NLSgpkgloader/maxNumberOfLayersToAdd", 100, type=int)
+        self.showMunicipalitiesAsLayer = QSettings().value("/NLSgpkgloader/showMunicipalitiesAsLayer", True, type=bool)
+        self.showUTMGridsAsLayer = QSettings().value("/NLSgpkgloader/showUTMGridsAsLayer", False, type=bool)
+
+        if self.nls_user_key == "":
+            self.showSettingsDialog()
+
+
+        self.municipality_layer = QgsVectorLayer(os.path.join(self.path, "data/SuomenKuntajako_2018_10k.shp"), "municipalities", "ogr")
+        if not self.municipality_layer.isValid():
+            QgsMessageLog.logMessage('Failed to load the municipality layer', 'NLSAtomClient', 2)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the municipality layer", level=2, duration=5)
+            return
+        self.municipality_layer.setProviderEncoding('ISO-8859-1')
+        self.utm25lr_layer = QgsVectorLayer(os.path.join(self.path, "data/utm25LR.shp"), "utm25lr", "ogr")
+        if not self.utm25lr_layer.isValid():
+            QgsMessageLog.logMessage('Failed to load the UTM 25LR grid layer', 'NLSAtomClient', 2)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 25LR grid layer", level=2, duration=5)
+            return
+
+        self.instance = QgsProject.instance()
+
+        if self.showMunicipalitiesAsLayer:
+            found_layer = False
+            current_layers = self.instance.layerTreeRoot().children()
+            for current_layer in current_layers:
+                if current_layer.layer().name() == "municipalities":
+                    found_layer = True
+                    break
+            if not found_layer:
+                self.instance.addMapLayer(self.municipality_layer)
+        self.product_types = self.downloadNLSProductTypes()
+
+        self.municipalities_dialog = uic.loadUi(os.path.join(self.path, MUNICIPALITIES_DIALOG_FILE))
+        self.municipalities_dialog.settingsPushButton.clicked.connect(self.showSettingsDialog)
+
+        iter = self.municipality_layer.getFeatures()
+        for feature in iter:
+            self.municipalities_dialog.municipalityListWidget.addItem(feature['NAMEFIN'])
+
+        for key, value in list(self.product_types.items()):
+            self.municipalities_dialog.productListWidget.addItem(value)
+
+        self.municipalities_dialog.show()
+
+        result = self.municipalities_dialog.exec_()
+
+        if result:
+            selected_mun_names = []
+            for item in self.municipalities_dialog.municipalityListWidget.selectedItems():
+                selected_mun_names.append(item.text())
+
+            QgsMessageLog.logMessage(str(selected_mun_names), 'NLSAtomClient', 0)
+
+            product_types = {}
+            self.selected_mtk_product_types = []
+
+            for selected_prod_title in self.municipalities_dialog.productListWidget.selectedItems():
+                for key, value in list(self.product_types.items()):
+                    if selected_prod_title.text() == value:
+                        if key.startswith(MTK_LAYERS_KEY_PREFIX): # Individual MTK layer
+                            self.selected_mtk_product_types.append(selected_prod_title.text()[len(MTK_PRODUCT_NAMES_PREFIX):])
+                            product_types[MTK_ALL_PRODCUCTS_URL] = MTK_ALL_PRODUCTS_TITLE
+                        else:
+                            product_types[key] = value
+
+            QgsMessageLog.logMessage(str(product_types), 'NLSAtomClient', 0)
+            QgsMessageLog.logMessage(str(self.selected_mtk_product_types), 'NLSAtomClient', 0)
+
+            if len(selected_mun_names) > 0 and len(product_types) > 0:
+                self.busy_indicator_dialog = QgsBusyIndicatorDialog(self.tr(u'A moment... processed 0% of the files '), self.iface.mainWindow())
+                self.busy_indicator_dialog.show()
+                QCoreApplication.processEvents()
+
+                for selected_mun_name in selected_mun_names:
+                    self.mun_utm25lr_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm25lr_layer)
+                    self.downloadData(product_types)
+
+    def getMunicipalityIntersectingFeatures(self, selected_mun_name, layer):
+        intersecting_features = []
+        request = QgsFeatureRequest().setFilterExpression( u'"NAMEFIN" = \'' + selected_mun_name + u'\'')
+        #QgsMessageLog.logMessage("in getMunicipalityIntersectingFeatures", 'NLSAtomClient', 0)
+        iter = self.municipality_layer.getFeatures(request)
+        count = 0
+        for feature in iter:
+            #QgsMessageLog.logMessage(str(count), 'NLSAtomClient', 0)
+            count += 1
+            mun_geom = feature.geometry()
+
+            layer_iter = layer.getFeatures()
+            for layer_feature in layer_iter:
+                layer_geom = layer_feature.geometry()
+                if mun_geom.intersects(layer_geom):
+                    intersecting_features.append(layer_feature)
+
+        QgsMessageLog.logMessage("Municipalities with the name " + selected_mun_name + ": " + str(count), 'NLSAtomClient', 0)
+        QgsMessageLog.logMessage("Count of " + layer.name() + " sheets (features) intersecting with the municipality: " + str(len(intersecting_features)), 'NLSAtomClient', 0)
+
+        return intersecting_features
+
+    def downloadData(self, product_types):
+
+        QgsMessageLog.logMessage("in downloadData", 'NLSAtomClient', 0)
+
+        self.all_urls = []
+        self.total_download_count = 0
+        self.download_count = 0
+        self.layers_added_count = 0
+
+        for product_key, product_title in list(product_types.items()):
+            urls = self.createDownloadURLS(product_key, product_title)
+            self.all_urls.extend(urls)
+            self.total_download_count += len(urls)
+
+        percentage = self.download_count / float(self.total_download_count) * 100.0
+        percentage_text = "%.2f" % round(percentage, 2)
+
+        QgsMessageLog.logMessage("A moment... processed " + percentage_text + "% of the files", 'NLSAtomClient', 0)
+        #QgsMessageLog.logMessage(str(self.total_download_count), 'NLSAtomClient', 0)
+
+        QTimer.singleShot(1000, self.downloadOneFile)
+
         # Create the dialog with elements (after translation) and keep reference
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-        if self.first_start == True:
-            self.first_start = False
-            self.dlg = NLSGeoPackageLoaderDialog()
+        # if self.first_start == True:
+        #     self.first_start = False
+        #     self.dlg = NLSGeoPackageLoaderDialog()
 
-        # show the dialog
-        self.dlg.show()
+        # # show the dialog
+        # self.dlg.show()
+        # # Run the dialog event loop
+        # result = self.dlg.exec_()
+        # # See if OK was pressed
+        # if result:
+        #     # Do something useful here - delete the line containing pass and
+        #     # substitute with your code.
+        #     pass
+
+    def downloadNLSProductTypes(self):
+        products = {}
+
+        url = "https://tiedostopalvelu.maanmittauslaitos.fi/tp/feed/mtp?api_key=" + self.nls_user_key
+        r = requests.get(url)
+
+        e = xml.etree.ElementTree.fromstring(r.text)
+
+        for entry in e.findall('{http://www.w3.org/2005/Atom}entry'):
+            title = entry.find('{http://www.w3.org/2005/Atom}title');
+            QgsMessageLog.logMessage(title.text, 'NLSAtomClient', 0)
+            id = entry.find('{http://www.w3.org/2005/Atom}id')
+            QgsMessageLog.logMessage(id.text, 'NLSAtomClient', 0)
+
+            if title.text == 'Maastotietokanta, kaikki kohteet':
+                # TODO let user choose in the options dialog if the individual layers can be selected
+                for mtk_product_name in MTK_PRODUCT_NAMES:
+                    products[MTK_LAYERS_KEY_PREFIX + mtk_product_name] = MTK_PRODUCT_NAMES_PREFIX + mtk_product_name
+            else:
+                # products[id.text] = title.text
+                pass
+
+        return products
+
+    def downloadOneFile(self):
+        if self.download_count == self.total_download_count or self.download_count >= len(self.all_urls):
+            QgsMessageLog.logMessage("Should not be possible to be here", 'NLSAtomClient', 2)
+            QgsMessageLog.logMessage("self.download_count: " + str(self.download_count), 'NLSAtomClient', 0)
+            QgsMessageLog.logMessage("Total download count: " + str(self.total_download_count), 'NLSAtomClient', 0)
+            self.busy_indicator_dialog.hide()
+            return
+
+        url = self.all_urls[self.download_count][0]
+        QgsMessageLog.logMessage(url, 'NLSAtomClient', 0)
+        r = requests.get(url, stream=True)
+        # TODO check r.status_code & r.ok
+
+        url_parts = url.split('/')
+        file_name = url_parts[-1].split('?')[0]
+
+        data_dir_name = self.all_urls[self.download_count][1]
+        data_dir_name = data_dir_name.replace(":", "_suhde_")
+        dir_path = os.path.join(self.data_download_dir, data_dir_name)
+
+        #QgsMessageLog.logMessage(dir_path, 'NLSAtomClient', 0)
+        if not os.path.exists(dir_path):
+            try:
+                os.makedirs(dir_path)
+            except OSError as exc:
+                QgsMessageLog.logMessage(str(exc.errno), 'NLSAtomClient', 2)
+        if not os.path.exists(dir_path):
+            QgsMessageLog.logMessage("dir not created", 'NLSAtomClient', 2)
+
+        #z = zipfile.ZipFile(StringIO.StringIO(r.content))
+        #z.extractall(os.path.join(self.data_download_dir, value))
+        with open(os.path.join(dir_path, file_name), 'wb') as f:
+            f.write(r.content)
+
+        if self.addDownloadedDataAsLayer and self.layers_added_count < self.maxNumberOfLayersToAdd:
+            if "zip" in file_name:
+                dir_path = os.path.join(dir_path, file_name.split('.')[0])
+                z = zipfile.ZipFile(io.BytesIO(r.content))
+                z.extractall(dir_path)
+
+            data_type = self.all_urls[self.download_count][3]
+
+            for listed_file_name in os.listdir(dir_path):
+                if self.layers_added_count >= self.maxNumberOfLayersToAdd:
+                    break
+                #QgsMessageLog.logMessage(listed_file_name, 'NLSAtomClient', 0)
+                if data_type == "shp" and listed_file_name.endswith(".shp"):
+                    found_layer = False
+                    current_layers = self.instance.layerTreeRoot().children()
+                    for current_layer in current_layers:
+                        if current_layer.layer().name() == listed_file_name:
+                            found_layer = True
+                            break
+                    if not found_layer:
+                        new_layer = QgsVectorLayer(os.path.join(dir_path, listed_file_name), listed_file_name, "ogr")
+                        if new_layer.isValid():
+                            self.instance.addMapLayer(new_layer)
+                            self.layers_added_count += 1
+                elif data_type == "gml" and listed_file_name.endswith(".xml"):
+                    driver = ogr.GetDriverByName('GML')
+                    data_source = driver.Open(os.path.join(dir_path, listed_file_name), 0)
+                    #for layer in data_source:
+                    #    layer_name = layer.GetName()
+                    #    QgsMessageLog.logMessage("A gml layer: " + layer_name, 'NLSAtomClient', 0)
+                    layer_count = data_source.GetLayerCount()
+
+                    mtk_layer_count = 0 # Used for breaking from the for loop when all MTK layers chosen by the user have been added
+
+                    for i in range(layer_count):
+                        layer = data_source.GetLayerByIndex(i)
+                        layer_name = layer.GetName()
+                        #QgsMessageLog.logMessage("A gml layer: " + layer_name, 'NLSAtomClient', 0)
+                        new_layer_name = listed_file_name + " " + layer_name
+
+                        found_layer = False
+                        current_layers = self.instance.layerTreeRoot().children()
+                        for current_layer in current_layers:
+                            if current_layer.layer().name() == new_layer_name:
+                                found_layer = True
+                                break
+                        if not found_layer:
+                            # check if the downloaded file contains the Maastotietokanta layers and if it does, then add only layers selected by the user
+                            if url.startswith(MTK_ALL_PRODCUCTS_DOWNLOAD_URL):
+                                for product_type in self.selected_mtk_product_types:
+                                    if product_type == layer_name:
+                                        new_layer = QgsVectorLayer(os.path.join(dir_path, listed_file_name) + "|layerid=" + str(i), new_layer_name, "ogr")
+                                        if new_layer.isValid():
+                                            self.instance.addMapLayer(new_layer)
+                                            self.layers_added_count += 1
+                                            mtk_layer_count += 1
+                                        break
+                            else:
+                                new_layer = QgsVectorLayer(os.path.join(dir_path, listed_file_name) + "|layerid=" + str(i), new_layer_name, "ogr")
+                                if new_layer.isValid():
+                                    self.instance.addMapLayer(new_layer)
+                                    self.layers_added_count += 1
+
+                        if (url.startswith(MTK_ALL_PRODCUCTS_DOWNLOAD_URL) and mtk_layer_count == len(self.selected_mtk_product_types)) or \
+                            (self.layers_added_count >= self.maxNumberOfLayersToAdd):
+                            break
+                else:
+                    QgsMessageLog.logMessage("cannot add the data type " + data_type + ", listed_file_name: " + listed_file_name, 'NLSAtomClient', 0)
+
+        self.download_count += 1
+        percentage = self.download_count / float(self.total_download_count) * 100.0
+        percentage_text = "%.2f" % round(percentage, 2)
+
+        self.busy_indicator_dialog.setMessage(self.tr(u'A moment... processed ') + percentage_text + self.tr(u'% of the files '))
+
+        QgsMessageLog.logMessage("A moment... processed " + percentage_text + "% of the files", 'NLSAtomClient', 0)
+
+        if self.download_count == self.total_download_count:
+            QgsMessageLog.logMessage("done downloading data", 'NLSAtomClient', 0)
+            self.busy_indicator_dialog.hide()
+            self.iface.messageBar().pushMessage(self.tr(u'Download finished'), \
+                self.tr(u'NLS data download finished. Data located under ') + \
+                self.data_download_dir, level=3)#, duration=10)
+        else:
+            QTimer.singleShot(10, self.downloadOneFile)
+
+    def showSettingsDialog(self):
+        self.nls_user_key_dialog.userKeyLineEdit.setText(self.nls_user_key)
+        self.nls_user_key_dialog.dataLocationQgsFileWidget.setFilePath(os.path.join(self.path, "data"))
+        self.nls_user_key_dialog.addDownloadedDataAsLayerCheckBox.setChecked(self.addDownloadedDataAsLayer)
+        self.nls_user_key_dialog.maxNumberOfLayersToAddSpinBox.setValue(self.maxNumberOfLayersToAdd)
+        self.nls_user_key_dialog.showMunicipalitiesAsLayerCheckBox.setChecked(self.showMunicipalitiesAsLayer)
+        self.nls_user_key_dialog.showUTMGridsAsLayerCheckBox.setChecked(self.showUTMGridsAsLayer)
+
+        self.nls_user_key_dialog.show()
+
         # Run the dialog event loop
-        result = self.dlg.exec_()
+        result = self.nls_user_key_dialog.exec_()
         # See if OK was pressed
         if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
-            pass
+            self.nls_user_key = self.nls_user_key_dialog.userKeyLineEdit.text().strip()
+            if self.nls_user_key == "":
+                # cannot work without the key, so user needs to be notified
+                QMessageBox.critical(self.iface.mainWindow(), self.tr(u'User-key is needed'), self.tr(u'Data cannot be downloaded without the NLS key'))
+                return
+            self.data_download_dir = self.nls_user_key_dialog.dataLocationQgsFileWidget.filePath()
+            self.addDownloadedDataAsLayer = self.nls_user_key_dialog.addDownloadedDataAsLayerCheckBox.isChecked()
+            self.maxNumberOfLayersToAdd = self.nls_user_key_dialog.maxNumberOfLayersToAddSpinBox.value()
+            self.showMunicipalitiesAsLayer = self.nls_user_key_dialog.showMunicipalitiesAsLayerCheckBox.isChecked()
+            self.showUTMGridsAsLayer = self.nls_user_key_dialog.showUTMGridsAsLayerCheckBox.isChecked()
+
+            QSettings().setValue("/NLSAtomClient/userKey", self.nls_user_key)
+            QSettings().setValue("/NLSAtomClient/dataDownloadDir", self.data_download_dir)
+            QSettings().setValue("/NLSAtomClient/addDownloadedDataAsLayer", self.addDownloadedDataAsLayer)
+            QSettings().setValue("/NLSAtomClient/maxNumberOfLayersToAdd", self.maxNumberOfLayersToAdd)
+            QSettings().setValue("/NLSAtomClient/showMunicipalitiesAsLayer", self.showMunicipalitiesAsLayer)
+            QSettings().setValue("/NLSAtomClient/showUTMGridsAsLayer", self.showUTMGridsAsLayer)
+
+        else:
+            if self.nls_user_key == "":
+                # cannot work without the key, so user needs to be notified
+                QMessageBox.critical(self.iface.mainWindow(), self.tr(u'User-key is needed'), self.tr(u'Data cannot be downloaded without the NLS key'))
+                return
+
+    def initWithNLSData(self):
+        self.path = os.path.dirname(__file__)
+        self.data_download_dir = self.path
+
+        self.nls_user_key_dialog = uic.loadUi(os.path.join(self.path, NLS_USER_KEY_DIALOG_FILE))
+        self.first_run = QSettings().value("/NLSgpkgloader/first_run", True, type=bool)
+        if self.first_run:
+            QSettings().setValue("/NLSgpkgloader/first_run", False)
+
+    def createDownloadURLS(self, product_key, product_title):
+
+        urls = []
+
+        # if product_key == "https://tiedostopalvelu.maanmittauslaitos.fi/tp/feed/mtp/kiinteistorekisterikartta/karttalehdittain":
+        #     urls = self.createCadastralIndexMapVectorAllFeaturesDownloadURLS(product_key, product_title)
+        if product_key == "https://tiedostopalvelu.maanmittauslaitos.fi/tp/feed/mtp/maastotietokanta/kaikki":
+            urls = self.createTopographicDatabaseDownloadURLS(product_key, product_title)
+        else:
+            QgsMessageLog.logMessage('Unknown product ' + product_title +  ', please send error report to the author', 'NLSAtomClient', 2)
+            self.iface.messageBar().pushMessage('Unknown product ' + product_title +  ', please send error report to the author', level=2, duration=10)
+
+        #QgsMessageLog.logMessage("URL count: " + str(len(urls)), 'NLSAtomClient', 0)
+        return urls
+
+    def createTopographicDatabaseDownloadURLS(self, product_key, product_title):
+
+        urls = []
+
+        for mun_utm_feature in self.mun_utm25lr_features:
+            sheet_name = mun_utm_feature['LEHTITUNNU']
+            sn1 = sheet_name[:2]
+            sn2 = sheet_name[:3]
+            #https://tiedostopalvelu.maanmittauslaitos.fi/tp/tilauslataus/tuotteet/maastotietokanta/kaikki/etrs89/gml/L4/L41/L4134L_mtk.zip?token=vk2mphnnvbtrp313ee4amjpo2o
+            modified_key = product_key.replace("/feed/mtp", "/tilauslataus/tuotteet")
+
+            url = modified_key + "/etrs89/gml/" + sn1 + "/" + sn2 + "/" + sheet_name + "_mtk.zip?api_key="  + self.nls_user_key
+            #QgsMessageLog.logMessage(url, 'NLSAtomClient', 0)
+
+            urls.append((url, product_title, product_key, "gml"))
+
+        return urls
