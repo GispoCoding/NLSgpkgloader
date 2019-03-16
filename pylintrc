@@ -21,7 +21,7 @@ persistent=yes
 # usually to register additional checkers.
 load-plugins=
 
-extension-pkg-whitelist=PyQt5
+extension-pkg-whitelist=PyQt5, qgis
 
 [MESSAGES CONTROL]
 
