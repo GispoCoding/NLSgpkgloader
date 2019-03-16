@@ -49,7 +49,7 @@
     <item>
      <widget class="QListWidget" name="municipalityListWidget">
       <property name="selectionMode">
-       <enum>QAbstractItemView::SingleSelection</enum>
+       <enum>QAbstractItemView::MultiSelection</enum>
       </property>
       <property name="sortingEnabled">
        <bool>true</bool>

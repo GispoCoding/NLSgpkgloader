@@ -243,13 +243,82 @@ class NLSGeoPackageLoader:
             self.iface.messageBar().pushMessage("Error", "Failed to load the municipality layer", level=2, duration=5)
             return
         self.municipality_layer.setProviderEncoding('ISO-8859-1')
+        self.utm5_layer = QgsVectorLayer(os.path.join(self.path, "data/utm5.shp"), "utm5", "ogr")
+        if not self.utm5_layer.isValid():
+            QgsMessageLog.logMessage('Failed to load the UTM 5 grid layer', 'NLSgpkgloader', 2)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 5 grid layer", level=2, duration=5)
+            return
+        self.utm10_layer = QgsVectorLayer(os.path.join(self.path, "data/utm10.shp"), "utm10", "ogr")
+        if not self.utm10_layer.isValid():
+            QgsMessageLog.logMessage('Failed to load the UTM 10 grid layer', 'NLSgpkgloader', 2)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 10 grid layer", level=2, duration=5)
+            return
         self.utm25lr_layer = QgsVectorLayer(os.path.join(self.path, "data/utm25LR.shp"), "utm25lr", "ogr")
         if not self.utm25lr_layer.isValid():
             QgsMessageLog.logMessage('Failed to load the UTM 25LR grid layer', 'NLSgpkgloader', 2)
             self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 25LR grid layer", level=2, duration=5)
             return
+        self.utm25_layer = QgsVectorLayer(os.path.join(self.path, "data/utm25.shp"), "utm25", "ogr")
+        if not self.utm25_layer.isValid():
+            QgsMessageLog.logMessage('Failed to load the UTM 25 grid layer', 'NLSgpkgloader', 2)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 25 grid layer", level=2, duration=5)
+            return
+        self.utm50_layer = QgsVectorLayer(os.path.join(self.path, "data/utm50.shp"), "utm50", "ogr")
+        if not self.utm50_layer.isValid():
+            QgsMessageLog.logMessage('Failed to load the UTM 50 grid layer', 'NLSgpkgloader', 2)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 50 grid layer", level=2, duration=5)
+            return
+        self.utm100_layer = QgsVectorLayer(os.path.join(self.path, "data/utm100.shp"), "utm100", "ogr")
+        if not self.utm100_layer.isValid():
+            QgsMessageLog.logMessage('Failed to load the UTM 100 grid layer', 'NLSgpkgloader', 2)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 100 grid layer", level=2, duration=5)
+            return
+        self.utm200_layer = QgsVectorLayer(os.path.join(self.path, "data/utm200.shp"), "utm200", "ogr")
+        if not self.utm200_layer.isValid():
+            QgsMessageLog.logMessage('Failed to load the UTM 200 grid layer', 'NLSgpkgloader', 2)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 200 grid layer", level=2, duration=5)
+            return
 
         self.instance = QgsProject.instance()
+
+        if self.showUTMGridsAsLayer:
+            found_utm5_layer = False
+            found_utm10_layer = False
+            found_utm25lr_layer = False
+            found_utm25_layer = False
+            found_utm50_layer = False
+            found_utm100_layer = False
+            found_utm200_layer = False
+            current_layers = self.instance.layerTreeRoot().children()
+            for current_layer in current_layers:
+                if current_layer.layer().name() == "utm5":
+                    found_utm5_layer = True
+                if current_layer.layer().name() == "utm10":
+                    found_utm10_layer = True
+                if current_layer.layer().name() == "utm25lr":
+                    found_utm25lr_layer = True
+                if current_layer.layer().name() == "utm25":
+                    found_utm25_layer = True
+                if current_layer.layer().name() == "utm50":
+                    found_utm50_layer = True
+                if current_layer.layer().name() == "utm100":
+                    found_utm100_layer = True
+                if current_layer.layer().name() == "utm200":
+                    found_utm200_layer = True
+            if not found_utm200_layer:
+                self.instance.addMapLayer(self.utm200_layer)
+            if not found_utm100_layer:
+                self.instance.addMapLayer(self.utm100_layer)
+            if not found_utm50_layer:
+                self.instance.addMapLayer(self.utm50_layer)
+            if not found_utm25_layer:
+                self.instance.addMapLayer(self.utm25_layer)
+            if not found_utm25lr_layer:
+                self.instance.addMapLayer(self.utm25lr_layer)
+            if not found_utm10_layer:
+                self.instance.addMapLayer(self.utm10_layer)
+            if not found_utm5_layer:
+                self.instance.addMapLayer(self.utm5_layer)
 
         if self.showMunicipalitiesAsLayer:
             found_layer = False
@@ -260,6 +329,7 @@ class NLSGeoPackageLoader:
                     break
             if not found_layer:
                 self.instance.addMapLayer(self.municipality_layer)
+
         self.product_types = self.downloadNLSProductTypes()
 
         self.municipalities_dialog = uic.loadUi(os.path.join(self.path, MUNICIPALITIES_DIALOG_FILE))
@@ -277,14 +347,24 @@ class NLSGeoPackageLoader:
         result = self.municipalities_dialog.exec_()
 
         if result:
+            #self.mun_utm5_features = []
+            #self.mun_utm10_features = []
+            self.mun_utm25lr_features = []
+            #self.mun_utm25_features = []
+            #self.mun_utm50_features = []
+            #self.mun_utm100_features = []
+            #self.mun_utm200_features = []
+
             self.newFile = True # TODO: move somewhere else and create an option for the user
+
             selected_mun_names = []
             for item in self.municipalities_dialog.municipalityListWidget.selectedItems():
                 selected_mun_names.append(item.text())
 
             QgsMessageLog.logMessage(str(selected_mun_names), 'NLSgpkgloader', 0)
 
-            product_types = {}
+            product_types = {} # TODO ask from the user via dialog that lists types based on NLS Atom service
+
             self.selected_mtk_product_types = []
 
             for selected_prod_title in self.municipalities_dialog.productListWidget.selectedItems():
@@ -303,14 +383,29 @@ class NLSGeoPackageLoader:
                 self.busy_indicator_dialog = QgsBusyIndicatorDialog(self.tr(u'A moment... downloaded 0% of the files '), self.iface.mainWindow())
                 self.busy_indicator_dialog.show()
                 QCoreApplication.processEvents()
+                self.mun_utm25lr_features = []
 
-                for selected_mun_name in selected_mun_names:
-                    self.mun_utm25lr_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm25lr_layer)
-                    self.downloadData(product_types)
+                self.mun_utm25lr_features = self.getMunicipalityIntersectingFeatures(selected_mun_names, self.utm25lr_layer)
 
-    def getMunicipalityIntersectingFeatures(self, selected_mun_name, layer):
+                #for selected_mun_name in selected_mun_names:
+                    #self.mun_utm10_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm10_layer)
+                    #self.mun_utm25lr_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm25lr_layer)
+                    #self.mun_utm25_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm25_layer)
+                    #self.mun_utm50_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm50_layer)
+                    #self.mun_utm100_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm100_layer)
+                    #self.mun_utm200_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm200_layer)
+
+                self.downloadData(product_types)
+
+    def getMunicipalityIntersectingFeatures(self, selected_mun_names, layer):
         intersecting_features = []
-        request = QgsFeatureRequest().setFilterExpression(u'"NAMEFIN" = \'' + selected_mun_name + u'\'')
+        expression = ''
+        for mun in selected_mun_names:
+            expression += u'"NAMEFIN" = \'' + mun + u'\' OR '
+        expression = expression[:-4]
+        QgsMessageLog.logMessage("featureExpression: " + expression, 'NLSgpkgloader', 0)
+        request = QgsFeatureRequest().setFilterExpression(expression)
+        #request = QgsFeatureRequest().setFilterExpression(u'"NAMEFIN" = \'' + selected_mun_name + u'\'')
         #QgsMessageLog.logMessage("in getMunicipalityIntersectingFeatures", 'NLSgpkgloader', 0)
         iter = self.municipality_layer.getFeatures(request)
         count = 0
@@ -325,7 +420,7 @@ class NLSGeoPackageLoader:
                 if mun_geom.intersects(layer_geom):
                     intersecting_features.append(layer_feature)
 
-        QgsMessageLog.logMessage("Municipalities with the name " + selected_mun_name + ": " + str(count), 'NLSgpkgloader', 0)
+        QgsMessageLog.logMessage("Number of municipalities found: " + str(count), 'NLSgpkgloader', 0)
         QgsMessageLog.logMessage("Count of " + layer.name() + " sheets (features) intersecting with the municipality: " + str(len(intersecting_features)), 'NLSgpkgloader', 0)
 
         return intersecting_features
@@ -405,6 +500,7 @@ class NLSGeoPackageLoader:
         if not os.path.exists(dir_path):
             QgsMessageLog.logMessage("dir not created", 'NLSgpkgloader', 2)
 
+        # TODO: don't keep zipfiles
         #z = zipfile.ZipFile(StringIO.StringIO(r.content))
         #z.extractall(os.path.join(self.data_download_dir, value))
         with open(os.path.join(dir_path, file_name), 'wb') as f:
@@ -425,10 +521,7 @@ class NLSGeoPackageLoader:
 
         if self.download_count == self.total_download_count:
             QgsMessageLog.logMessage("done downloading data", 'NLSgpkgloader', 0)
-            self.busy_indicator_dialog.hide()
-            # self.iface.messageBar().pushMessage(self.tr(u'Download finished'), \
-            #     self.tr(u'NLS data download finished. Data located under ') + \
-            #     self.data_download_dir, level=3)#, duration=10)
+            #self.busy_indicator_dialog.hide()
             self.createGeoPackage()
         else:
             QTimer.singleShot(10, self.downloadOneFile)
@@ -436,8 +529,8 @@ class NLSGeoPackageLoader:
     def createGeoPackage(self):
         '''Creates a GeoPackage from the downloaded MTK data'''
 
-        self.busy_indicator_dialog = QgsBusyIndicatorDialog(self.tr(u'Processed 0% of the files '), self.iface.mainWindow())
-        self.busy_indicator_dialog.show()
+        #self.busy_indicator_dialog = QgsBusyIndicatorDialog(self.tr(u'Processed 0% of the files '), self.iface.mainWindow())
+        #self.busy_indicator_dialog.show()
 
         for dlIndex in range(0, self.total_download_count):
 
@@ -466,11 +559,13 @@ class NLSGeoPackageLoader:
                             for product_type in self.selected_mtk_product_types:
                                 if product_type == layer_name:
                                     new_layer = QgsVectorLayer(os.path.join(dir_path, listed_file_name) + "|layerid=" + str(i), layer_name, "ogr")
+
                                     if new_layer.isValid():
                                         options = QgsVectorFileWriter.SaveVectorOptions()
                                         options.layerName = layer_name
                                         options.driverName = "GPKG"
                                         options.fileEncoding = "UTF-8"
+
                                         if self.newFile: # TODO: ask for confirmation on overwrite
                                             options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
                                             self.newFile = False
@@ -478,16 +573,22 @@ class NLSGeoPackageLoader:
                                             options.actionOnExistingFile = QgsVectorFileWriter.AppendToLayerNoNewFields
                                         else:
                                             options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
+
                                         e = QgsVectorFileWriter.writeAsVectorFormat(new_layer, self.gpkg_dir, options)
                                         if e[0]:
                                             QgsMessageLog.logMessage("Failed to write layer " + layer_name + " to geopackage", 'NLSgpkgloader', 2)
                                             break
+                                        else:
+                                            QgsMessageLog.logMessage("Finished writing GeoPackage", 'NLSgokgloader', 0)
                                         # self.instance.addMapLayer(new_layer)
                                         mtk_layer_count += 1
-
+                                    else:
+                                        # TODO: handle invalid layer error
+                                        #QgsMessageLog.logMessage("Invalid layer: " + listed_file_name + ":" layer_name, 'NLSgpkgloader', 2)
+                                        pass
                                     break
                         else:
-                            QgsMessageLog.logMessage("Download URL doesn't start with MTK_ALL_PRODUCTS_DOWNLOAD_URL", 'NLSgpkgloader', 0)
+                            QgsMessageLog.logMessage("Download URL doesn't start with MTK_ALL_PRODUCTS_DOWNLOAD_URL", 'NLSgpkgloader', 2)
                             # new_layer = QgsVectorLayer(os.path.join(dir_path, listed_file_name) + "|layerid=" + str(i), layer_name, "ogr")
                             # if new_layer.isValid():
                             #     self.instance.addMapLayer(new_layer)
@@ -570,8 +671,6 @@ class NLSGeoPackageLoader:
 
         urls = []
 
-        # if product_key == "https://tiedostopalvelu.maanmittauslaitos.fi/tp/feed/mtp/kiinteistorekisterikartta/karttalehdittain":
-        #     urls = self.createCadastralIndexMapVectorAllFeaturesDownloadURLS(product_key, product_title)
         if product_key == "https://tiedostopalvelu.maanmittauslaitos.fi/tp/feed/mtp/maastotietokanta/kaikki":
             urls = self.createTopographicDatabaseDownloadURLS(product_key, product_title)
         else:
