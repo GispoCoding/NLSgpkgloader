@@ -34,7 +34,7 @@ from osgeo import ogr
 from PyQt5 import uic
 from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QTimer
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QMessageBox
+from PyQt5.QtWidgets import QAction, QMessageBox, QListWidgetItem
 
 import processing
 
@@ -71,6 +71,7 @@ MTK_PRODUCT_NAMES = ["YhteisetTyypit", "Aallonmurtaja", "AidanSymboli", "Aita", 
                      "UrheiluJaVirkistysalue", "ValtakunnanRajapyykki", "Varastoalue", "Vedenottamo", "VedenpinnanKorkeusluku",
                      "Vesiasteikko", "Vesikivi", "Vesikivikko", "Vesikulkuvayla", "VesikulkuvaylanKulkusuunta", "VesikulkuvaylanTeksti",
                      "Vesikuoppa", "Vesitorni", "Viettoviiva", "Virtausnuoli", "VirtavesiKapea", "VirtavesiAlue"]
+MTK_PRESELECTED_PRODUCTS = ["Maastotietokanta, Tieviiva", "Maastotietokanta, Puisto", "Maastotietokanta, Maastotietokanta, Maastotietokanta, Maastotietokanta, Vesitorni"]
 
 class NLSGeoPackageLoader:
     """QGIS Plugin Implementation."""
@@ -245,10 +246,14 @@ class NLSGeoPackageLoader:
 
         iter = self.municipality_layer.getFeatures()
         for feature in iter:
-            self.municipalities_dialog.municipalityListWidget.addItem(feature['NAMEFIN'])
+            item = QListWidgetItem(feature['NAMEFIN'])
+            self.municipalities_dialog.municipalityListWidget.addItem(item)
 
         for key, value in list(self.product_types.items()):
-            self.municipalities_dialog.productListWidget.addItem(value)
+            item = QListWidgetItem(value)
+            self.municipalities_dialog.productListWidget.addItem(item)
+            if value in MTK_PRESELECTED_PRODUCTS:
+                self.municipalities_dialog.productListWidget.setCurrentItem(item)
 
         self.municipalities_dialog.show()
 
