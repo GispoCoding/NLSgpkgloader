@@ -604,13 +604,15 @@ class NLSGeoPackageLoader:
                                         options.driverName = "GPKG"
                                         options.fileEncoding = "UTF-8"
 
-                                        if self.newFile: # TODO: ask for confirmation on overwrite
-                                            options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
-                                            self.newFile = False
-                                        elif QgsVectorLayer(gpkg_path + "|layername=" + layer_name).isValid():
-                                            options.actionOnExistingFile = QgsVectorFileWriter.AppendToLayerNoNewFields
+                                        if os.path.isfile(gpkg_path):
+                                            if self.newFile: # TODO: ask for confirmation on overwrite
+                                                options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
+                                            elif QgsVectorLayer(gpkg_path + "|layername=" + layer_name).isValid():
+                                                options.actionOnExistingFile = QgsVectorFileWriter.AppendToLayerNoNewFields
+                                            else:
+                                                options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
                                         else:
-                                            options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
+                                            options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
 
                                         e = QgsVectorFileWriter.writeAsVectorFormat(new_layer, gpkg_path, options)
                                         if e[0]:
