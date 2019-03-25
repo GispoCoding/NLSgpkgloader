@@ -237,7 +237,9 @@ class NLSGeoPackageLoader:
         if self.nls_user_key == "":
             self.showSettingsDialog()
 
-        self.loadLayers()
+        if not self.loadLayers():
+            QMessageBox.critical(self.iface.mainWindow(), self.tr(u'Failed to load data'), self.tr(u'Please check the plugin data directory has the necessary files'))
+            return
 
         self.product_types = self.downloadNLSProductTypes()
 
@@ -322,43 +324,53 @@ class NLSGeoPackageLoader:
         if not self.municipality_layer.isValid():
             QgsMessageLog.logMessage('Failed to load the municipality layer', 'NLSgpkgloader', 2)
             self.iface.messageBar().pushMessage("Error", "Failed to load the municipality layer", level=2, duration=5)
-            return
+            return False
         self.municipality_layer.setProviderEncoding('ISO-8859-1')
         self.utm5_layer = QgsVectorLayer(os.path.join(self.path, "data/utm5.shp"), "utm5", "ogr")
         if not self.utm5_layer.isValid():
-            QgsMessageLog.logMessage('Failed to load the UTM 5 grid layer', 'NLSgpkgloader', 2)
-            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 5 grid layer", level=2, duration=5)
-            return
+            QgsMessageLog.logMessage('Failed to load the UTM 5 grid layer', 'NLSgpkgloader', 1)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 5 grid layer", level=1, duration=5)
+            self.utm5_layer = False
         self.utm10_layer = QgsVectorLayer(os.path.join(self.path, "data/utm10.shp"), "utm10", "ogr")
         if not self.utm10_layer.isValid():
-            QgsMessageLog.logMessage('Failed to load the UTM 10 grid layer', 'NLSgpkgloader', 2)
-            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 10 grid layer", level=2, duration=5)
-            return
+            QgsMessageLog.logMessage('Failed to load the UTM 10 grid layer', 'NLSgpkgloader', 1)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 10 grid layer", level=1, duration=5)
+            self.utm10_layer = False
         self.utm25lr_layer = QgsVectorLayer(os.path.join(self.path, "data/utm25LR.shp"), "utm25lr", "ogr")
         if not self.utm25lr_layer.isValid():
             QgsMessageLog.logMessage('Failed to load the UTM 25LR grid layer', 'NLSgpkgloader', 2)
             self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 25LR grid layer", level=2, duration=5)
-            return
+            return False
         self.utm25_layer = QgsVectorLayer(os.path.join(self.path, "data/utm25.shp"), "utm25", "ogr")
         if not self.utm25_layer.isValid():
-            QgsMessageLog.logMessage('Failed to load the UTM 25 grid layer', 'NLSgpkgloader', 2)
-            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 25 grid layer", level=2, duration=5)
-            return
+            QgsMessageLog.logMessage('Failed to load the UTM 25 grid layer', 'NLSgpkgloader', 1)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 25 grid layer", level=1, duration=5)
+            self.utm25_layer = False
         self.utm50_layer = QgsVectorLayer(os.path.join(self.path, "data/utm50.shp"), "utm50", "ogr")
         if not self.utm50_layer.isValid():
-            QgsMessageLog.logMessage('Failed to load the UTM 50 grid layer', 'NLSgpkgloader', 2)
-            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 50 grid layer", level=2, duration=5)
-            return
+            QgsMessageLog.logMessage('Failed to load the UTM 50 grid layer', 'NLSgpkgloader', 1)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 50 grid layer", level=1, duration=5)
+            self.utm50_layer = False
         self.utm100_layer = QgsVectorLayer(os.path.join(self.path, "data/utm100.shp"), "utm100", "ogr")
         if not self.utm100_layer.isValid():
-            QgsMessageLog.logMessage('Failed to load the UTM 100 grid layer', 'NLSgpkgloader', 2)
-            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 100 grid layer", level=2, duration=5)
-            return
+            QgsMessageLog.logMessage('Failed to load the UTM 100 grid layer', 'NLSgpkgloader', 1)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 100 grid layer", level=1, duration=5)
+            self.utm100_layer = False
         self.utm200_layer = QgsVectorLayer(os.path.join(self.path, "data/utm200.shp"), "utm200", "ogr")
         if not self.utm200_layer.isValid():
-            QgsMessageLog.logMessage('Failed to load the UTM 200 grid layer', 'NLSgpkgloader', 2)
-            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 200 grid layer", level=2, duration=5)
-            return
+            QgsMessageLog.logMessage('Failed to load the UTM 200 grid layer', 'NLSgpkgloader', 1)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the UTM 200 grid layer", level=1, duration=5)
+            self.utm200_layer = False
+
+        expression = '"product_group_id" = 5'
+        #request = QgsFeatureRequest().setFilterExpression(expression)
+        self.seatile_layer = QgsVectorLayer(os.path.join(self.path, "data/merikartat.gpkg"), "seatiles", "ogr")
+        self.seatile_layer.setSubsetString(expression)
+        # self.seatile_layer.getFeatures(expression)
+        if not self.seatile_layer.isValid():
+            QgsMessageLog.logMessage('Failed to load the ocean grid layer', 'NLSgpkgloader', 2)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the ocean grid layer", level=2, duration=5)
+            self.seatile_layer = False
 
         self.instance = QgsProject.instance()
 
@@ -393,20 +405,31 @@ class NLSGeoPackageLoader:
                 if current_layer.layer().name() == "utm200":
                     found_utm200_layer = True
                     self.utm200_layer = current_layer.layer()
-            if not found_utm200_layer:
+            if not found_utm200_layer and self.utm200_layer:
                 self.instance.addMapLayer(self.utm200_layer)
-            if not found_utm100_layer:
+            if not found_utm100_layer and self.utm100_layer:
                 self.instance.addMapLayer(self.utm100_layer)
-            if not found_utm50_layer:
+            if not found_utm50_layer and self.utm50_layer:
                 self.instance.addMapLayer(self.utm50_layer)
-            if not found_utm25_layer:
+            if not found_utm25_layer and self.utm25_layer:
                 self.instance.addMapLayer(self.utm25_layer)
             if not found_utm25lr_layer:
                 self.instance.addMapLayer(self.utm25lr_layer)
-            if not found_utm10_layer:
+            if not found_utm10_layer and self.utm10_layer:
                 self.instance.addMapLayer(self.utm10_layer)
-            if not found_utm5_layer:
+            if not found_utm5_layer and self.utm5_layer:
                 self.instance.addMapLayer(self.utm5_layer)
+
+        if self.showSeatilesAsLayer and self.seatile_layer:
+            found_layer = False
+            current_layers = self.instance.layerTreeRoot().children()
+            for current_layer in current_layers:
+                if current_layer.layer().name() == "seatiles":
+                    found_layer = True
+                    self.seatile_layer = current_layer.layer()
+                    break
+            if not found_layer:
+                self.instance.addMapLayer(self.seatile_layer)
 
         if self.showMunicipalitiesAsLayer:
             found_layer = False
@@ -419,8 +442,7 @@ class NLSGeoPackageLoader:
             if not found_layer:
                 self.instance.addMapLayer(self.municipality_layer)
 
-    def getMunicipalityIntersectingFeatures(self, selected_mun_names, layer):
-        intersecting_features = []
+            return True
 
         expression = ''
         for mun in selected_mun_names:
