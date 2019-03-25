@@ -238,7 +238,7 @@ class NLSGeoPackageLoader:
             self.showSettingsDialog()
 
         if not self.loadLayers():
-            QMessageBox.critical(self.iface.mainWindow(), self.tr(u'Failed to load data'), self.tr(u'Please check the plugin data directory has the necessary files'))
+            QMessageBox.critical(self.iface.mainWindow(), self.tr(u'Failed to load data'), self.tr(u'Check that necessary files exist in data folder'))
             return
 
         self.product_types = self.downloadNLSProductTypes()
@@ -264,7 +264,7 @@ class NLSGeoPackageLoader:
         if result:
             #self.mun_utm5_features = []
             #self.mun_utm10_features = []
-            self.mun_utm25lr_features = []
+            self.utm25lr_features = []
             #self.mun_utm25_features = []
             #self.mun_utm50_features = []
             #self.mun_utm100_features = []
@@ -281,6 +281,9 @@ class NLSGeoPackageLoader:
             selected_mun_names = []
             for item in self.municipalities_dialog.municipalityListWidget.selectedItems():
                 selected_mun_names.append(item.text())
+
+            selected_mun_features = self.municipality_layer.selectedFeatures()
+            selected_seatile_features = self.seatile_layer.selectedFeatures()
 
             QgsMessageLog.logMessage(str(selected_mun_names), 'NLSgpkgloader', 0)
 
@@ -306,8 +309,10 @@ class NLSGeoPackageLoader:
                 QCoreApplication.processEvents()
                 self.mun_utm25lr_features = []
 
-                self.mun_utm25lr_features = self.getMunicipalityIntersectingFeatures(selected_mun_names, self.utm25lr_layer)
+                self.getMunicipalityIntersectingFeatures(selected_mun_names, selected_mun_features, self.utm25lr_layer)
+                self.getSeatileIntersectingFeatures(selected_seatile_features, self.utm25lr_layer)
 
+                #QgsMessageLog.logMessage("self.utm25lrfeatures: " + self.utm25lr_features, 'NLSgpkgloader', 0)
                 #for selected_mun_name in selected_mun_names:
                     #self.mun_utm10_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm10_layer)
                     #self.mun_utm25lr_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm25lr_layer)
@@ -444,16 +449,13 @@ class NLSGeoPackageLoader:
 
             return True
 
+    def getMunicipalityIntersectingFeatures(self, selected_mun_names, selected_mun_features, layer):
         expression = ''
         for mun in selected_mun_names:
             expression += u'"NAMEFIN" = \'' + mun + u'\' OR '
         expression = expression[:-4]
-        #QgsMessageLog.logMessage("featureExpression: " + expression, 'NLSgpkgloader', 0)
 
-        request = QgsFeatureRequest().setFilterExpression(expression)
-        #request = QgsFeatureRequest().setFilterExpression(u'"NAMEFIN" = \'' + selected_mun_name + u'\'')
-        #QgsMessageLog.logMessage("in getMunicipalityIntersectingFeatures", 'NLSgpkgloader', 0)
-        iter = self.municipality_layer.getFeatures(request)
+        iter = self.municipality_layer.getFeatures(expression)
         count = 0
         for feature in iter:
             #QgsMessageLog.logMessage(str(count), 'NLSgpkgloader', 0)
@@ -464,24 +466,30 @@ class NLSGeoPackageLoader:
             for layer_feature in layer_iter:
                 layer_geom = layer_feature.geometry()
                 if mun_geom.intersects(layer_geom):
-                    intersecting_features.append(layer_feature)
+                    if feature not in self.utm25lr_features:
+                        self.utm25lr_features.append(layer_feature)
 
-        if not count: # TODO: check for duplicate map tiles in intersecting_features later
-            # allow users to select municipalities both from list and on map
-            iter = self.municipality_layer.selectedFeatures()
-            for feature in iter:
-                count += 1
-                mun_geom = feature.geometry()
-                layer_iter = layer.getFeatures()
-                for layer_feature in layer_iter:
-                    layer_geom = layer_feature.geometry()
-                    if mun_geom.intersects(layer_geom):
-                        intersecting_features.append(layer_feature)
+        for feature in selected_mun_features:
+            count += 1
+            mun_geom = feature.geometry()
+            layer_iter = layer.getFeatures()
+            for layer_feature in layer_iter:
+                layer_geom = layer_feature.geometry()
+                if mun_geom.intersects(layer_geom):
+                    if feature not in self.utm25lr_features:
+                        self.utm25lr_features.append(layer_feature)
 
-        QgsMessageLog.logMessage("Number of municipalities found: " + str(count), 'NLSgpkgloader', 0)
-        QgsMessageLog.logMessage("Count of " + layer.name() + " sheets (features) intersecting with the municipality: " + str(len(intersecting_features)), 'NLSgpkgloader', 0)
-
-        return intersecting_features
+    def getSeatileIntersectingFeatures(self, selected_seatile_features, layer):
+        count = 0
+        for feature in selected_seatile_features:
+            count += 1
+            seatile_geom = feature.geometry()
+            layer_iter = layer.getFeatures()
+            for layer_feature in layer_iter:
+                layer_geom = layer_feature_geometry()
+                if seatile_geom.intersects(layer_geom):
+                    if layer_feature not in self.utm25lr_features:
+                        self.utm25lr_features.append(layer_feature)
 
     def downloadData(self, product_types):
 
@@ -580,7 +588,7 @@ class NLSGeoPackageLoader:
 
         if self.download_count == self.total_download_count:
             QgsMessageLog.logMessage("done downloading data", 'NLSgpkgloader', 0)
-            #self.busy_indicator_dialog.hide()
+            self.busy_indicator_dialog.hide()
             self.createGeoPackage()
         else:
             QTimer.singleShot(10, self.downloadOneFile)
@@ -671,13 +679,13 @@ class NLSGeoPackageLoader:
 
             percentage = dlIndex/float(self.total_download_count) * 100.0
             percentage_text = "%.2f" % round(percentage, 2)
-            self.busy_indicator_dialog.setMessage(self.tr(u'Processed ') + percentage_text + self.tr(u'% of the files'))
+            # self.busy_indicator_dialog.setMessage(self.tr(u'Processed ') + percentage_text + self.tr(u'% of the files'))
 
             if self.addDownloadedDataAsLayer:
                 self.instance.addMapLayer(QgsVectorLayer(gpkg_path+ "|layername=" + i.GetName() + "_dissolved", i.GetName()))
 
-        self.busy_indicator_dialog.hide()
-        self.iface.messageBar().pushMessage(self.tr(u'Download finished'), \
+        # self.busy_indicator_dialog.hide()
+        self.iface.messageBar().pushMessage(self.tr(u'GeoPackage creation finished'), \
             self.tr(u'NLS data download finished. Data located under ') + \
             gpkg_path, level=3)
 
@@ -704,11 +712,13 @@ class NLSGeoPackageLoader:
             self.data_download_dir = self.nls_user_key_dialog.dataLocationQgsFileWidget.filePath()
             self.addDownloadedDataAsLayer = self.nls_user_key_dialog.addDownloadedDataAsLayerCheckBox.isChecked()
             self.showMunicipalitiesAsLayer = self.nls_user_key_dialog.showMunicipalitiesAsLayerCheckBox.isChecked()
+            self.showSeatilesAsLayer = True # TODO: create checkbox in UI and check isChecked()
             self.showUTMGridsAsLayer = self.nls_user_key_dialog.showUTMGridsAsLayerCheckBox.isChecked()
 
-            if self.showMunicipalitiesAsLayer or self.showUTMGridsAsLayer:
-                self.loadLayers()
-            # TODO: else: unloadLayers()
+            if self.showMunicipalitiesAsLayer or self.showUTMGridsAsLayer or self.showSeatilesAsLayer:
+                if not self.loadLayers():
+                    QMessageBox.critical(self.iface.mainWindow(), self.tr(u'Failed to load layers'), self.tr(u'Check that necessary files exist in data folder'))
+            # TODO: unloadLayers()
 
             QSettings().setValue("/NLSgpkgloader/userKey", self.nls_user_key)
             QSettings().setValue("/NLSgpkgloader/dataDownloadDir", self.data_download_dir)
@@ -725,7 +735,7 @@ class NLSGeoPackageLoader:
     def initWithNLSData(self):
         self.path = os.path.dirname(__file__)
         self.data_download_dir = self.path
-        #self.gpkg_dir = "/tmp/result.gpkg" # TODO: make this modifiable by the user
+        self.showSeatilesAsLayer = True
 
         self.nls_user_key_dialog = uic.loadUi(os.path.join(self.path, NLS_USER_KEY_DIALOG_FILE))
         self.first_run = QSettings().value("/NLSgpkgloader/first_run", True, type=bool)
@@ -746,10 +756,10 @@ class NLSGeoPackageLoader:
         return urls
 
     def createTopographicDatabaseDownloadURLS(self, product_key, product_title):
-
+        # TODO: integrate into createdownloadurls()
         urls = []
 
-        for mun_utm_feature in self.mun_utm25lr_features:
+        for mun_utm_feature in self.utm25lr_features:
             sheet_name = mun_utm_feature['LEHTITUNNU']
             sn1 = sheet_name[:2]
             sn2 = sheet_name[:3]
