@@ -29,7 +29,8 @@ import requests
 import sqlite3
 
 from qgis.core import (QgsVectorLayer, QgsMessageLog, QgsProject, QgsFeatureRequest,
-QgsVectorFileWriter, QgsProcessingFeedback, QgsCoordinateReferenceSystem, QgsProcessingFeedback)
+QgsVectorFileWriter, QgsProcessingFeedback, QgsCoordinateReferenceSystem,
+QgsProcessingFeedback, QgsFeature)
 from qgis.gui import QgsBusyIndicatorDialog, QgsFileWidget
 from osgeo import ogr
 
@@ -295,6 +296,7 @@ class NLSGeoPackageLoader:
         """Run method that performs all the real work"""
         self.nls_user_key = QSettings().value("/NLSgpkgloader/userKey", "", type=str)
         self.data_download_dir = QSettings().value("/NLSgpkgloader/dataDownloadDir", "", type=str)
+        self.fileName = QSettings().value("/NLSgpkgloader/defaultFileName", "mtk.gpkg", type=str)
         self.addDownloadedDataAsLayer = QSettings().value("/NLSgpkgloader/addDownloadedDataAsLayer", True, type=bool)
         self.showMunicipalitiesAsLayer = QSettings().value("/NLSgpkgloader/showMunicipalitiesAsLayer", True, type=bool)
         self.showUTMGridsAsLayer = QSettings().value("/NLSgpkgloader/showUTMGridsAsLayer", False, type=bool)
@@ -310,6 +312,7 @@ class NLSGeoPackageLoader:
 
         self.municipalities_dialog = uic.loadUi(os.path.join(self.path, MUNICIPALITIES_DIALOG_FILE))
         self.municipalities_dialog.settingsPushButton.clicked.connect(self.showSettingsDialog)
+        self.municipalities_dialog.fileNameEdit.setValue(self.fileName)
         self.municipalities_dialog.loadLayers.setChecked(self.addDownloadedDataAsLayer)
         self.municipalities_dialog.loadMunLayer.setChecked(self.showMunicipalitiesAsLayer)
         self.municipalities_dialog.loadUtmGrids.setChecked(self.showUTMGridsAsLayer)
@@ -339,6 +342,8 @@ class NLSGeoPackageLoader:
             if self.fileName == "":
                 QMessageBox.critical(self.iface.mainWindow(), self.tr(u'Invalid filename'), self.tr(u'Please enter a filename'))
                 return
+            else:
+                QSettings().setValue("/NLSgpkgloader/defaultFileName", self.fileName)
             if self.fileName.split('.')[-1].lower() != 'gpkg':
                 self.fileName += '.gpkg'
             self.gpkg_path = os.path.join(self.data_download_dir, self.fileName)
@@ -466,7 +471,7 @@ class NLSGeoPackageLoader:
                 if not found_utm5_layer and self.utm5_layer:
                     self.instance.addMapLayer(self.utm5_layer)
 
-        if self.showSeatilesAsLayer and self.seatile_layer and not found_seatiles_layer:
+        if self.showSeatilesAsLayer and not found_seatiles_layer:
             try:
                 self.instance.addMapLayer(self.seatile_layer)
             except:
@@ -524,7 +529,7 @@ class NLSGeoPackageLoader:
             self.utm200_layer = False
 
         expression = '"product_group_id" = 5'
-        self.seatile_layer = QgsVectorLayer(os.path.join(self.path, "data/merikartat.gpkg"), "seatiles", "ogr")
+        self.seatile_layer = QgsVectorLayer(os.path.join(self.path, "data/seatiles_3067.gpkg"), "seatiles", "ogr")
         self.seatile_layer.setSubsetString(expression)
         if not self.seatile_layer.isValid():
             QgsMessageLog.logMessage('Failed to load the ocean grid layer', 'NLSgpkgloader', 2)
