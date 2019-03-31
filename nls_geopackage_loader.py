@@ -748,11 +748,12 @@ class NLSGeoPackageLoader:
                     QgsMessageLog.logMessage("cannot add the data type " + data_type + ", listed_file_name: " + listed_file_name, 'NLSgpkgloader', 0)
 
         self.dissolveFeatures()
+        self.clipLayers()
         self.cleanUp()
         if self.addDownloadedDataAsLayer:
             conn = ogr.Open(self.gpkg_path)
             for i in conn:
-                if i.GetName() in MTK_STYLED_LAYERS.values() or i.GetName() in MTK_PRODUCT_NAMES:
+                if i.GetName() in MTK_STYLED_LAYERS.values() or i.GetName()[3:] in MTK_PRODUCT_NAMES:
                     self.instance.addMapLayer(QgsVectorLayer(self.gpkg_path + "|layername=" + i.GetName(), i.GetName(), "ogr"))
 
         self.iface.messageBar().pushMessage(self.tr(u'GeoPackage creation finished'), \
@@ -766,19 +767,52 @@ class NLSGeoPackageLoader:
             table_name = table.GetName()
             if table_name not in MTK_PRODUCT_NAMES:
                 continue
-            else:
-                if table_name in MTK_STYLED_LAYERS.keys():
-                    layer_name = MTK_STYLED_LAYERS[table_name]
-                else:
-                    layer_name = "zz_" + table_name
+            layer_name = "d_" + table_name
             params = {
                 'INPUT': self.gpkg_path + "|layername=" + table_name,
                 'FIELD': ['gid'],
-                'OUTPUT': 'ogr:dbname=\'' + self.gpkg_path + '\' table=\"' + layer_name + '\" (geom) sql='
+                'OUTPUT': "ogr:dbname='" + self.gpkg_path + '\' table="' + layer_name + '" (geom) sql='
             }
             processing.run("native:dissolve", params)
             percentage = i / float(len(self.selected_mtk_product_types)) * 100.0
             percentage_text = "%.2f" % round(percentage, 2)
+
+    def clipLayers(self):
+        combinedGeomLayer = QgsVectorLayer("MultiPolygon?crs=EPSG:3067", "clipLayer", "memory")
+        geom_union = None
+        for geom in self.selected_geoms:
+            if not geom_union:
+                geom_union = geom
+            else:
+                geom_union.combine(geom)
+        dp = combinedGeomLayer.dataProvider()
+
+        combinedGeomLayer.startEditing()
+        feat = QgsFeature()
+        feat.setGeometry(geom_union)
+        dp.addFeature(feat)
+        combinedGeomLayer.commitChanges()
+
+        params = {'INPUT': combinedGeomLayer, 'OUTPUT': 'memory:geomUnionLayer'}
+        result = processing.run("native:dissolve", params)
+        geomUnionLayer = result['OUTPUT']
+
+        conn = ogr.Open(self.gpkg_path)
+        for table in conn:
+            table_name = table.GetName()
+            if table_name[2:] not in MTK_PRODUCT_NAMES:
+                continue
+            layer_name = table_name[2:]
+            if layer_name in MTK_STYLED_LAYERS.keys():
+                layer_name = MTK_STYLED_LAYERS[layer_name]
+            else:
+                layer_name = 'zz_' + layer_name
+            params = {
+                'INPUT': self.gpkg_path + "|layername=" + table_name,
+                'OVERLAY': geomUnionLayer,
+                'OUTPUT': "ogr:dbname='" + self.gpkg_path + '\' table="' + layer_name + '" (geom) sql='
+            }
+            processing.run("native:clip", params)
 
     def cleanUp(self):
         conn = sqlite3.connect(self.gpkg_path)
