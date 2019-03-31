@@ -293,16 +293,15 @@ class NLSGeoPackageLoader:
 
     def run(self):
         """Run method that performs all the real work"""
-
         self.nls_user_key = QSettings().value("/NLSgpkgloader/userKey", "", type=str)
         self.data_download_dir = QSettings().value("/NLSgpkgloader/dataDownloadDir", "", type=str)
         self.addDownloadedDataAsLayer = QSettings().value("/NLSgpkgloader/addDownloadedDataAsLayer", True, type=bool)
         self.showMunicipalitiesAsLayer = QSettings().value("/NLSgpkgloader/showMunicipalitiesAsLayer", True, type=bool)
         self.showUTMGridsAsLayer = QSettings().value("/NLSgpkgloader/showUTMGridsAsLayer", False, type=bool)
+        self.showSeatilesAsLayer = QSettings().value("/NLSgpkgloader/showSeatilesAsLayer", False, type=bool)
 
         if self.nls_user_key == "":
             self.showSettingsDialog()
-
         if not self.loadLayers():
             QMessageBox.critical(self.iface.mainWindow(), self.tr(u'Failed to load data'), self.tr(u'Check that necessary files exist in data folder'))
             return
@@ -311,6 +310,15 @@ class NLSGeoPackageLoader:
 
         self.municipalities_dialog = uic.loadUi(os.path.join(self.path, MUNICIPALITIES_DIALOG_FILE))
         self.municipalities_dialog.settingsPushButton.clicked.connect(self.showSettingsDialog)
+        self.municipalities_dialog.loadLayers.setChecked(self.addDownloadedDataAsLayer)
+        self.municipalities_dialog.loadMunLayer.setChecked(self.showMunicipalitiesAsLayer)
+        self.municipalities_dialog.loadUtmGrids.setChecked(self.showUTMGridsAsLayer)
+        self.municipalities_dialog.loadSeaGrids.setChecked(self.showSeatilesAsLayer)
+        self.municipalities_dialog.loadLayers.stateChanged.connect(self.toggleLayers)
+        self.municipalities_dialog.loadMunLayer.stateChanged.connect(self.toggleLayers)
+        self.municipalities_dialog.loadUtmGrids.stateChanged.connect(self.toggleLayers)
+        self.municipalities_dialog.loadSeaGrids.stateChanged.connect(self.toggleLayers)
+        self.toggleLayers()
 
         iter = self.municipality_layer.getFeatures()
         for feature in iter:
@@ -339,7 +347,7 @@ class NLSGeoPackageLoader:
             self.newFile = True # TODO: move somewhere else and create an option for the user
             self.fileName = self.municipalities_dialog.fileNameEdit.text().strip()
             if self.fileName == "":
-                QMessageBox.critical(self.iface.mainWindow(), self.tr(u'Invalid filename'), self.tr(u'Please enter a valid filename'))
+                QMessageBox.critical(self.iface.mainWindow(), self.tr(u'Invalid filename'), self.tr(u'Please enter a filename'))
                 return
             if self.fileName.split('.')[-1].lower() != 'gpkg':
                 self.fileName += '.gpkg'
@@ -373,21 +381,104 @@ class NLSGeoPackageLoader:
                 self.busy_indicator_dialog = QgsBusyIndicatorDialog(self.tr(u'A moment... downloaded 0% of the files '), self.iface.mainWindow())
                 self.busy_indicator_dialog.show()
                 QCoreApplication.processEvents()
-                self.mun_utm25lr_features = []
 
-                self.getMunicipalityIntersectingFeatures(selected_mun_names, selected_mun_features, self.utm25lr_layer)
-                self.getSeatileIntersectingFeatures(selected_seatile_features, self.utm25lr_layer)
-
-                #QgsMessageLog.logMessage("self.utm25lrfeatures: " + self.utm25lr_features, 'NLSgpkgloader', 0)
-                #for selected_mun_name in selected_mun_names:
-                    #self.mun_utm10_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm10_layer)
-                    #self.mun_utm25lr_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm25lr_layer)
-                    #self.mun_utm25_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm25_layer)
-                    #self.mun_utm50_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm50_layer)
-                    #self.mun_utm100_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm100_layer)
-                    #self.mun_utm200_features = self.getMunicipalityIntersectingFeatures(selected_mun_name, self.utm200_layer)
+                self.getIntersectingFeatures(self.municipality_layer.selectedFeatures(), self.utm25lr_layer, selected_mun_names)
+                self.getIntersectingFeatures(self.seatile_layer.selectedFeatures(), self.utm25lr_layer)
 
                 self.downloadData(product_types)
+
+    def toggleLayers(self):
+        '''Load municipality and map tile layers'''
+        self.addDownloadedDataAsLayer = self.municipalities_dialog.loadLayers.isChecked()
+        self.showMunicipalitiesAsLayer = self.municipalities_dialog.loadMunLayer.isChecked()
+        self.showUTMGridsAsLayer = self.municipalities_dialog.loadUtmGrids.isChecked()
+        self.showSeatilesAsLayer = self.municipalities_dialog.loadSeaGrids.isChecked()
+        QSettings().setValue("/NLSgpkgloader/addDownloadedDataAsLayer", self.addDownloadedDataAsLayer)
+        QSettings().setValue("/NLSgpkgloader/showMunicipalitiesAsLayer", self.showMunicipalitiesAsLayer)
+        QSettings().setValue("/NLSgpkgloader/showUTMGridsAsLayer", self.showUTMGridsAsLayer)
+        QSettings().setValue("/NLSgpkgloader/showSeatilesAsLayer", self.showSeatilesAsLayer)
+
+        found_utm5_layer = found_utm10_layer = found_utm25lr_layer = \
+            found_utm25_layer = found_utm50_layer = found_utm100_layer = \
+                found_utm200_layer = found_seatiles_layer = found_municipality_layer = False
+
+        current_layers = self.instance.layerTreeRoot().children()
+
+        for current_layer in current_layers:
+            if current_layer.layer() == self.utm5_layer:
+                found_utm5_layer = True
+                current_layer.setItemVisibilityChecked(self.showUTMGridsAsLayer)
+            if current_layer.layer() == self.utm10_layer:
+                found_utm10_layer = True
+                current_layer.setItemVisibilityChecked(self.showUTMGridsAsLayer)
+            if current_layer.layer() == self.utm25lr_layer:
+                found_utm25lr_layer = True
+                current_layer.setItemVisibilityChecked(self.showUTMGridsAsLayer)
+            if current_layer.layer() == self.utm25_layer:
+                found_utm25_layer = True
+                current_layer.setItemVisibilityChecked(self.showUTMGridsAsLayer)
+            if current_layer.layer() == self.utm50_layer:
+                found_utm50_layer = True
+                current_layer.setItemVisibilityChecked(self.showUTMGridsAsLayer)
+            if current_layer.layer() == self.utm100_layer:
+                found_utm100_layer = True
+                current_layer.setItemVisibilityChecked(self.showUTMGridsAsLayer)
+            if current_layer.layer() == self.utm200_layer:
+                found_utm200_layer = True
+                current_layer.setItemVisibilityChecked(self.showUTMGridsAsLayer)
+            if current_layer.layer() == self.seatile_layer:
+                found_seatiles_layer = True
+                current_layer.setItemVisibilityChecked(self.showSeatilesAsLayer)
+            if current_layer.layer() == self.municipality_layer:
+                found_municipality_layer = True
+                current_layer.setItemVisibilityChecked(self.showMunicipalitiesAsLayer)
+
+        if self.showUTMGridsAsLayer:
+            try:
+                if not found_utm200_layer and self.utm200_layer:
+                    self.instance.addMapLayer(self.utm200_layer)
+                if not found_utm100_layer and self.utm100_layer:
+                    self.instance.addMapLayer(self.utm100_layer)
+                if not found_utm50_layer and self.utm50_layer:
+                    self.instance.addMapLayer(self.utm50_layer)
+                if not found_utm25_layer and self.utm25_layer:
+                    self.instance.addMapLayer(self.utm25_layer)
+                if not found_utm25lr_layer:
+                    self.instance.addMapLayer(self.utm25lr_layer)
+                if not found_utm10_layer and self.utm10_layer:
+                    self.instance.addMapLayer(self.utm10_layer)
+                if not found_utm5_layer and self.utm5_layer:
+                    self.instance.addMapLayer(self.utm5_layer)
+            except:
+                self.loadLayers()
+                if not found_utm200_layer and self.utm200_layer:
+                    self.instance.addMapLayer(self.utm200_layer)
+                if not found_utm100_layer and self.utm100_layer:
+                    self.instance.addMapLayer(self.utm100_layer)
+                if not found_utm50_layer and self.utm50_layer:
+                    self.instance.addMapLayer(self.utm50_layer)
+                if not found_utm25_layer and self.utm25_layer:
+                    self.instance.addMapLayer(self.utm25_layer)
+                if not found_utm25lr_layer:
+                    self.instance.addMapLayer(self.utm25lr_layer)
+                if not found_utm10_layer and self.utm10_layer:
+                    self.instance.addMapLayer(self.utm10_layer)
+                if not found_utm5_layer and self.utm5_layer:
+                    self.instance.addMapLayer(self.utm5_layer)
+
+        if self.showSeatilesAsLayer and self.seatile_layer and not found_seatiles_layer:
+            try:
+                self.instance.addMapLayer(self.seatile_layer)
+            except:
+                self.loadLayers()
+                self.instance.addMapLayer(self.seatile_layer)
+
+        if self.showMunicipalitiesAsLayer and not found_municipality_layer:
+            try:
+                self.instance.addMapLayer(self.municipality_layer)
+            except:
+                self.loadLayers()
+                self.instance.addMapLayer(self.municipality_layer)
 
     def loadLayers(self):
         '''Load municipality and map tile layers'''
@@ -440,80 +531,32 @@ class NLSGeoPackageLoader:
         # self.seatile_layer.getFeatures(expression)
         if not self.seatile_layer.isValid():
             QgsMessageLog.logMessage('Failed to load the ocean grid layer', 'NLSgpkgloader', 2)
-            self.iface.messageBar().pushMessage("Error", "Failed to load the ocean grid layer", level=2, duration=5)
+            self.iface.messageBar().pushMessage("Error", "Failed to load the sea grid layer", level=2, duration=5)
             self.seatile_layer = False
 
         self.instance = QgsProject.instance()
+        for lnode in self.instance.layerTreeRoot().children():
+            if lnode.layer().dataProvider().dataSourceUri() == self.municipality_layer.dataProvider().dataSourceUri():
+                self.municipality_layer = lnode.layer()
+            if lnode.layer().dataProvider().dataSourceUri() == self.seatile_layer.dataProvider().dataSourceUri():
+                self.seatile_layer = lnode.layer()
+            if lnode.layer().dataProvider().dataSourceUri() == self.utm5_layer.dataProvider().dataSourceUri():
+                self.utm5_layer = lnode.layer()
+            if lnode.layer().dataProvider().dataSourceUri() == self.utm10_layer.dataProvider().dataSourceUri():
+                self.utm10_layer = lnode.layer()
+            if lnode.layer().dataProvider().dataSourceUri() == self.utm25_layer.dataProvider().dataSourceUri():
+                self.utm25_layer = lnode.layer()
+            if lnode.layer().dataProvider().dataSourceUri() == self.utm25lr_layer.dataProvider().dataSourceUri():
+                self.utm25lr_layer = lnode.layer()
+            if lnode.layer().dataProvider().dataSourceUri() == self.utm50_layer.dataProvider().dataSourceUri():
+                self.utm50_layer = lnode.layer()
+            if lnode.layer().dataProvider().dataSourceUri() == self.utm100_layer.dataProvider().dataSourceUri():
+                self.utm100_layer = lnode.layer()
+            if lnode.layer().dataProvider().dataSourceUri() == self.utm200_layer.dataProvider().dataSourceUri():
+                self.utm200_layer = lnode.layer()
 
-        if self.showUTMGridsAsLayer:
-            found_utm5_layer = False
-            found_utm10_layer = False
-            found_utm25lr_layer = False
-            found_utm25_layer = False
-            found_utm50_layer = False
-            found_utm100_layer = False
-            found_utm200_layer = False
-            current_layers = self.instance.layerTreeRoot().children()
-            for current_layer in current_layers:
-                if current_layer.layer().name() == "utm5":
-                    found_utm5_layer = True
-                    self.utm5_layer = current_layer.layer()
-                if current_layer.layer().name() == "utm10":
-                    found_utm10_layer = True
-                    self.utm10_layer = current_layer.layer()
-                if current_layer.layer().name() == "utm25lr":
-                    found_utm25lr_layer = True
-                    self.utm25lr_layer = current_layer.layer()
-                if current_layer.layer().name() == "utm25":
-                    found_utm25_layer = True
-                    self.utm25_layer = current_layer.layer()
-                if current_layer.layer().name() == "utm50":
-                    found_utm50_layer = True
-                    self.utm50_layer = current_layer.layer()
-                if current_layer.layer().name() == "utm100":
-                    found_utm100_layer = True
-                    self.utm100_layer = current_layer.layer()
-                if current_layer.layer().name() == "utm200":
-                    found_utm200_layer = True
-                    self.utm200_layer = current_layer.layer()
-            if not found_utm200_layer and self.utm200_layer:
-                self.instance.addMapLayer(self.utm200_layer)
-            if not found_utm100_layer and self.utm100_layer:
-                self.instance.addMapLayer(self.utm100_layer)
-            if not found_utm50_layer and self.utm50_layer:
-                self.instance.addMapLayer(self.utm50_layer)
-            if not found_utm25_layer and self.utm25_layer:
-                self.instance.addMapLayer(self.utm25_layer)
-            if not found_utm25lr_layer:
-                self.instance.addMapLayer(self.utm25lr_layer)
-            if not found_utm10_layer and self.utm10_layer:
-                self.instance.addMapLayer(self.utm10_layer)
-            if not found_utm5_layer and self.utm5_layer:
-                self.instance.addMapLayer(self.utm5_layer)
 
-        if self.showSeatilesAsLayer and self.seatile_layer:
-            found_layer = False
-            current_layers = self.instance.layerTreeRoot().children()
-            for current_layer in current_layers:
-                if current_layer.layer().name() == "seatiles":
-                    found_layer = True
-                    self.seatile_layer = current_layer.layer()
-                    break
-            if not found_layer:
-                self.instance.addMapLayer(self.seatile_layer)
-
-        if self.showMunicipalitiesAsLayer:
-            found_layer = False
-            current_layers = self.instance.layerTreeRoot().children()
-            for current_layer in current_layers:
-                if current_layer.layer().name() == "municipalities":
-                    found_layer = True
-                    self.municipality_layer = current_layer.layer()
-                    break
-            if not found_layer:
-                self.instance.addMapLayer(self.municipality_layer)
-
-            return True
+        return True
 
     def getMunicipalityIntersectingFeatures(self, selected_mun_names, selected_mun_features, layer):
         expression = ''
