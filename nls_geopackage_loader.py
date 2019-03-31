@@ -26,8 +26,10 @@ import io
 import zipfile
 import xml.etree.ElementTree
 import requests
+import sqlite3
 
-from qgis.core import QgsVectorLayer, QgsMessageLog, QgsProject, QgsFeatureRequest, QgsVectorFileWriter, QgsProcessingFeedback
+from qgis.core import (QgsVectorLayer, QgsMessageLog, QgsProject, QgsFeatureRequest,
+QgsVectorFileWriter, QgsProcessingFeedback, QgsCoordinateReferenceSystem, QgsProcessingFeedback)
 from qgis.gui import QgsBusyIndicatorDialog, QgsFileWidget
 from osgeo import ogr
 
@@ -50,28 +52,26 @@ MTK_ALL_PRODUCTS_URL = "https://tiedostopalvelu.maanmittauslaitos.fi/tp/feed/mtp
 MTK_ALL_PRODUCTS_DOWNLOAD_URL = "https://tiedostopalvelu.maanmittauslaitos.fi/tp/tilauslataus/tuotteet/maastotietokanta/kaikki"
 MTK_LAYERS_KEY_PREFIX = "MTK"
 MTK_ALL_PRODUCTS_TITLE = "Maastotietokanta, kaikki kohteet"
-MTK_PRODUCT_NAMES_PREFIX = "Maastotietokanta, "
 MTK_PRODUCT_NAMES = ["YhteisetTyypit", "Aallonmurtaja", "AidanSymboli", "Aita", "Allas", "AluemerenUlkoraja", "AmpumaAlue",
-                     "Ankkuripaikka", "Autoliikennealue", "HarvaLouhikko", "Hautausmaa", "Hietikko", "Hylky", "HylynSyvyys",
-                     "IlmaradanKannatinpylvas", "Ilmarata", "Jyrkanne", "Kaatopaikka", "Kaislikko", "KallioAlue", "KallioSymboli",
-                     "Kalliohalkeama", "Kansallispuisto", "Karttasymboli", "Kellotapuli", "Kivi", "Kivikko", "Korkeuskayra",
-                     "KorkeuskayranKorkeusarvo", "Koski", "KunnanHallintokeskus", "KunnanHallintoraja", "Kunta", "Lahde",
-                     "Lahestymisvalo", "Lentokenttaalue", "Louhos", "Luiska", "Luonnonpuisto", "Luonnonsuojelualue",
-                     "MaaAineksenottoalue", "Maasto2kuvionReuna", "MaastokuvionReuna", "Maatalousmaa", "MaatuvaVesialue",
-                     "Masto", "MastonKorkeus", "Matalikko", "MerkittavaLuontokohde", "MetsamaanKasvillisuus", "MetsamaanMuokkaus",
-                     "MetsanRaja", "Muistomerkki", "Muuntaja", "Muuntoasema", "Nakotorni", "Niitty", "Osoitepiste", "Paikannimi",
-                     "Pato", "Pelastuskoodipiste", "PistolaituriViiva", "Portti", "Puisto", "PutkijohdonSymboli", "Putkijohto",
-                     "Puu", "Puurivi", "RajavyohykkeenTakaraja", "Rakennelma", "Rakennus", "Rakennusreunaviiva", "Rautatie",
-                     "Rautatieliikennepaikka", "RautatienSymboli", "Retkeilyalue", "Sahkolinja", "SahkolinjanSymboli", "Savupiippu",
-                     "SavupiipunKorkeus", "Selite", "SisaistenAluevesienUlkoraja", "Soistuma", "Sulkuportti", "Suo", "SuojaAlue",
-                     "SuojaAlueenReunaviiva", "Suojametsa", "Suojanne", "SuojelualueenReunaviiva", "SuurjannitelinjanPylvas",
-                     "Syvyyskayra", "SyvyyskayranSyvyysarvo", "Syvyyspiste", "TaajaanRakennettuAlue", "TaajaanRakennetunAlueenReuna",
-                     "Taytemaa", "Tervahauta", "Tiesymboli", "Tienroteksti", "Tieviiva", "Tulentekopaikka", "TulvaAlue",
-                     "TunnelinAukko", "Turvalaite", "Tuulivoimala", "Uittolaite", "Uittoranni", "UlkoJaSisasaaristonRaja",
-                     "UrheiluJaVirkistysalue", "ValtakunnanRajapyykki", "Varastoalue", "Vedenottamo", "VedenpinnanKorkeusluku",
-                     "Vesiasteikko", "Vesikivi", "Vesikivikko", "Vesikulkuvayla", "VesikulkuvaylanKulkusuunta", "VesikulkuvaylanTeksti",
-                     "Vesikuoppa", "Vesitorni", "Viettoviiva", "Virtausnuoli", "VirtavesiKapea", "VirtavesiAlue"]
-MTK_PRESELECTED_PRODUCTS = ["Maastotietokanta, Tieviiva", "Maastotietokanta, Puisto", "Maastotietokanta, Maastotietokanta, Maastotietokanta, Maastotietokanta, Vesitorni"]
+                    "Ankkuripaikka", "Autoliikennealue", "HarvaLouhikko", "Hautausmaa", "Hietikko", "Hylky", "HylynSyvyys",
+                    "IlmaradanKannatinpylvas", "Ilmarata", "Jyrkanne", "Kaatopaikka", "Kaislikko", "KallioAlue", "KallioSymboli",
+                    "Kalliohalkeama", "Kansallispuisto", "Karttasymboli", "Kellotapuli", "Kivi", "Kivikko", "Korkeuskayra",
+                    "KorkeuskayranKorkeusarvo", "Koski", "KunnanHallintokeskus", "KunnanHallintoraja", "Kunta", "Lahde",
+                    "Lahestymisvalo", "Lentokenttaalue", "Louhos", "Luiska", "Luonnonpuisto", "Luonnonsuojelualue",
+                    "MaaAineksenottoalue", "Maasto2kuvionReuna", "MaastokuvionReuna", "Maatalousmaa", "MaatuvaVesialue",
+                    "Masto", "MastonKorkeus", "Matalikko", "MerkittavaLuontokohde", "MetsamaanKasvillisuus", "MetsamaanMuokkaus",
+                    "MetsanRaja", "Muistomerkki", "Muuntaja", "Muuntoasema", "Nakotorni", "Niitty", "Osoitepiste", "Paikannimi",
+                    "Pato", "Pelastuskoodipiste", "PistolaituriViiva", "Portti", "Puisto", "PutkijohdonSymboli", "Putkijohto",
+                    "Puu", "Puurivi", "RajavyohykkeenTakaraja", "Rakennelma", "Rakennus", "Rakennusreunaviiva", "Rautatie",
+                    "Rautatieliikennepaikka", "RautatienSymboli", "Retkeilyalue", "Sahkolinja", "SahkolinjanSymboli", "Savupiippu",
+                    "SavupiipunKorkeus", "Selite", "SisaistenAluevesienUlkoraja", "Soistuma", "Sulkuportti", "Suo", "SuojaAlue",
+                    "SuojaAlueenReunaviiva", "Suojametsa", "Suojanne", "SuojelualueenReunaviiva", "SuurjannitelinjanPylvas",
+                    "Syvyyskayra", "SyvyyskayranSyvyysarvo", "Syvyyspiste", "TaajaanRakennettuAlue", "TaajaanRakennetunAlueenReuna",
+                    "Taytemaa", "Tervahauta", "Tiesymboli", "Tienroteksti", "Tieviiva", "Tulentekopaikka", "TulvaAlue",
+                    "TunnelinAukko", "Turvalaite", "Tuulivoimala", "Uittolaite", "Uittoranni", "UlkoJaSisasaaristonRaja",
+                    "UrheiluJaVirkistysalue", "ValtakunnanRajapyykki", "Varastoalue", "Vedenottamo", "VedenpinnanKorkeusluku",
+                    "Vesiasteikko", "Vesikivi", "Vesikivikko", "Vesikulkuvayla", "VesikulkuvaylanKulkusuunta", "VesikulkuvaylanTeksti",
+                    "Vesikuoppa", "Vesitorni", "Viettoviiva", "Virtausnuoli", "VirtavesiKapea", "VirtavesiAlue"]
 
 MTK_STYLED_LAYERS = {
     "Vesitorni": "01_Vesitorni",
@@ -320,12 +320,11 @@ class NLSGeoPackageLoader:
         self.municipalities_dialog.loadSeaGrids.stateChanged.connect(self.toggleLayers)
         self.toggleLayers()
 
-        iter = self.municipality_layer.getFeatures()
-        for feature in iter:
+        for feature in self.municipality_layer.getFeatures():
             item = QListWidgetItem(feature['NAMEFIN'])
             self.municipalities_dialog.municipalityListWidget.addItem(item)
 
-        for key, value in list(self.product_types.items()):
+        for key, value in self.product_types.items():
             item = QListWidgetItem(value)
             self.municipalities_dialog.productListWidget.addItem(item)
             if value in MTK_PRESELECTED_PRODUCTS:
@@ -334,16 +333,7 @@ class NLSGeoPackageLoader:
         self.municipalities_dialog.show()
 
         result = self.municipalities_dialog.exec_()
-
         if result:
-            #self.mun_utm5_features = []
-            #self.mun_utm10_features = []
-            self.utm25lr_features = []
-            #self.mun_utm25_features = []
-            #self.mun_utm50_features = []
-            #self.mun_utm100_features = []
-            #self.mun_utm200_features = []
-
             self.newFile = True # TODO: move somewhere else and create an option for the user
             self.fileName = self.municipalities_dialog.fileNameEdit.text().strip()
             if self.fileName == "":
@@ -351,33 +341,43 @@ class NLSGeoPackageLoader:
                 return
             if self.fileName.split('.')[-1].lower() != 'gpkg':
                 self.fileName += '.gpkg'
+            self.gpkg_path = os.path.join(self.data_download_dir, self.fileName)
+            if os.path.isfile(self.gpkg_path):
+                if self.newFile: # TODO: ask whether to overwrite or not
+                    os.remove(self.gpkg_path)
+                else:
+                    return
+
+            self.utm25lr_features = []
+            self.selected_geoms = []
+            for feature in self.utm25lr_layer.selectedFeatures():
+                self.utm25lr_features.append(feature)
+                self.selected_geoms.append(feature.geometry())
 
             selected_mun_names = []
             for item in self.municipalities_dialog.municipalityListWidget.selectedItems():
                 selected_mun_names.append(item.text())
+            for feature in self.municipality_layer.getFeatures():
+                if feature["NAMEFIN"] in selected_mun_names:
+                    self.selected_geoms.append(feature.geometry())
 
-            selected_mun_features = self.municipality_layer.selectedFeatures()
-            selected_seatile_features = self.seatile_layer.selectedFeatures()
-
-            QgsMessageLog.logMessage(str(selected_mun_names), 'NLSgpkgloader', 0)
+            for feature in self.municipality_layer.selectedFeatures():
+                self.selected_geoms.append(feature.geometry())
+            for feature in self.seatile_layer.selectedFeatures():
+                self.selected_geoms.append(feature.geometry())
 
             product_types = {} # TODO ask from the user via dialog that lists types based on NLS Atom service
-
             self.selected_mtk_product_types = []
-
-            for selected_prod_title in self.municipalities_dialog.productListWidget.selectedItems():
+            for selected_prod_title in self.municipalities_dialog.productListWidget.selectedItems(): # TODO: clean up the loop
                 for key, value in list(self.product_types.items()):
                     if selected_prod_title.text() == value:
                         if key.startswith(MTK_LAYERS_KEY_PREFIX): # Individual MTK layer
-                            self.selected_mtk_product_types.append(selected_prod_title.text()[len(MTK_PRODUCT_NAMES_PREFIX):])
+                            self.selected_mtk_product_types.append(selected_prod_title.text())
                             product_types[MTK_ALL_PRODUCTS_URL] = MTK_ALL_PRODUCTS_TITLE
                         else:
                             product_types[key] = value
 
-            QgsMessageLog.logMessage(str(product_types), 'NLSgpkgloader', 0)
-            QgsMessageLog.logMessage(str(self.selected_mtk_product_types), 'NLSgpkgloader', 0)
-
-            if len(product_types) > 0: # TODO: check if len(selected_municipalities) > 0 OR len(selected_features) > 0
+            if len(product_types) > 0 and len(self.selected_geoms) > 0:
                 self.busy_indicator_dialog = QgsBusyIndicatorDialog(self.tr(u'A moment... downloaded 0% of the files '), self.iface.mainWindow())
                 self.busy_indicator_dialog.show()
                 QCoreApplication.processEvents()
@@ -481,7 +481,6 @@ class NLSGeoPackageLoader:
                 self.instance.addMapLayer(self.municipality_layer)
 
     def loadLayers(self):
-        '''Load municipality and map tile layers'''
         self.municipality_layer = QgsVectorLayer(os.path.join(self.path, "data/SuomenKuntajako_2018_10k.shp"), "municipalities", "ogr")
         if not self.municipality_layer.isValid():
             QgsMessageLog.logMessage('Failed to load the municipality layer', 'NLSgpkgloader', 2)
@@ -525,10 +524,8 @@ class NLSGeoPackageLoader:
             self.utm200_layer = False
 
         expression = '"product_group_id" = 5'
-        #request = QgsFeatureRequest().setFilterExpression(expression)
         self.seatile_layer = QgsVectorLayer(os.path.join(self.path, "data/merikartat.gpkg"), "seatiles", "ogr")
         self.seatile_layer.setSubsetString(expression)
-        # self.seatile_layer.getFeatures(expression)
         if not self.seatile_layer.isValid():
             QgsMessageLog.logMessage('Failed to load the ocean grid layer', 'NLSgpkgloader', 2)
             self.iface.messageBar().pushMessage("Error", "Failed to load the sea grid layer", level=2, duration=5)
@@ -584,14 +581,12 @@ class NLSGeoPackageLoader:
 
     def downloadData(self, product_types):
 
-        QgsMessageLog.logMessage("in downloadData", 'NLSgpkgloader', 0)
-
         self.all_urls = []
         self.total_download_count = 0
         self.download_count = 0
         self.layers_added_count = 0
 
-        for product_key, product_title in list(product_types.items()):
+        for product_key, product_title in product_types.items():
             urls = self.createDownloadURLS(product_key, product_title)
             self.all_urls.extend(urls)
             self.total_download_count += len(urls)
@@ -624,7 +619,7 @@ class NLSGeoPackageLoader:
             if title.text == 'Maastotietokanta, kaikki kohteet':
                 # TODO let user choose in the options dialog if the individual layers can be selected
                 for mtk_product_name in MTK_PRODUCT_NAMES:
-                    products[MTK_LAYERS_KEY_PREFIX + mtk_product_name] = MTK_PRODUCT_NAMES_PREFIX + mtk_product_name
+                    products[MTK_LAYERS_KEY_PREFIX + mtk_product_name] = mtk_product_name
             else:
                 # products[id.text] = title.text
                 pass
