@@ -689,12 +689,7 @@ class NLSGeoPackageLoader:
     def createGeoPackage(self):
         '''Creates a GeoPackage from the downloaded MTK data'''
 
-        #self.busy_indicator_dialog = QgsBusyIndicatorDialog(self.tr(u'Processed 0% of the files '), self.iface.mainWindow())
-        #self.busy_indicator_dialog.show()
-        gpkg_path = os.path.join(self.data_download_dir, self.fileName)
-
         for dlIndex in range(0, self.total_download_count):
-
             url = self.all_urls[dlIndex][0]
             url_parts = url.split('/')
             file_name = url_parts[-1].split('?')[0]
@@ -709,40 +704,32 @@ class NLSGeoPackageLoader:
                     driver = ogr.GetDriverByName('GML')
                     data_source = driver.Open(os.path.join(dir_path, listed_file_name), 0)
                     layer_count = data_source.GetLayerCount()
-
                     mtk_layer_count = 0 # Used for breaking from the for loop when all MTK layers chosen by the user have been added
-
                     for i in range(layer_count):
                         layer = data_source.GetLayerByIndex(i)
                         layer_name = layer.GetName()
-
                         if url.startswith(MTK_ALL_PRODUCTS_DOWNLOAD_URL):
                             for product_type in self.selected_mtk_product_types:
                                 if product_type == layer_name:
                                     new_layer = QgsVectorLayer(os.path.join(dir_path, listed_file_name) + "|layerid=" + str(i), layer_name, "ogr")
-
                                     if new_layer.isValid():
                                         options = QgsVectorFileWriter.SaveVectorOptions()
                                         options.layerName = layer_name
                                         options.driverName = "GPKG"
                                         options.fileEncoding = "UTF-8"
-
-                                        if os.path.isfile(gpkg_path):
-                                            if self.newFile: # TODO: ask for confirmation on overwrite
-                                                options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
-                                            elif QgsVectorLayer(gpkg_path + "|layername=" + layer_name).isValid():
+                                        if os.path.isfile(self.gpkg_path):
+                                            if QgsVectorLayer(self.gpkg_path + "|layername=" + layer_name).isValid():
                                                 options.actionOnExistingFile = QgsVectorFileWriter.AppendToLayerNoNewFields
                                             else:
                                                 options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
                                         else:
                                             options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
-
-                                        e = QgsVectorFileWriter.writeAsVectorFormat(new_layer, gpkg_path, options)
+                                        e = QgsVectorFileWriter.writeAsVectorFormat(new_layer, self.gpkg_path, options)
                                         if e[0]:
                                             QgsMessageLog.logMessage("Failed to write layer " + layer_name + " to geopackage", 'NLSgpkgloader', 2)
                                             break
                                         else:
-                                            QgsMessageLog.logMessage("Finished writing GeoPackage", 'NLSgokgloader', 0)
+                                            QgsMessageLog.logMessage("Finished writing GeoPackage", 'NLSgpkgloader', 0)
                                         # self.instance.addMapLayer(new_layer)
                                         mtk_layer_count += 1
                                     else:
@@ -755,32 +742,57 @@ class NLSGeoPackageLoader:
                             # new_layer = QgsVectorLayer(os.path.join(dir_path, listed_file_name) + "|layerid=" + str(i), layer_name, "ogr")
                             # if new_layer.isValid():
                             #     self.instance.addMapLayer(new_layer)
-
                         if (url.startswith(MTK_ALL_PRODUCTS_DOWNLOAD_URL) and mtk_layer_count == len(self.selected_mtk_product_types)):
                             break
                 else:
                     QgsMessageLog.logMessage("cannot add the data type " + data_type + ", listed_file_name: " + listed_file_name, 'NLSgpkgloader', 0)
 
-        conn = ogr.Open(gpkg_path)
-        for i in conn:
-            params = {
-                'INPUT': gpkg_path + "|layername=" + i.GetName(),
-                'FIELD': ['gid'],
-                'OUTPUT': 'ogr:dbname=\'' + gpkg_path + '\' table=\"' + i.GetName() + '_dissolved\" (geom) sql='
-            }
-            processing.run("native:dissolve", params)
+        self.dissolveFeatures()
+        self.cleanUp()
+        if self.addDownloadedDataAsLayer:
+            conn = ogr.Open(self.gpkg_path)
+            for i in conn:
+                if i.GetName() in MTK_STYLED_LAYERS.values() or i.GetName() in MTK_PRODUCT_NAMES:
+                    self.instance.addMapLayer(QgsVectorLayer(self.gpkg_path + "|layername=" + i.GetName(), i.GetName(), "ogr"))
 
-            percentage = dlIndex/float(self.total_download_count) * 100.0
-            percentage_text = "%.2f" % round(percentage, 2)
-            # self.busy_indicator_dialog.setMessage(self.tr(u'Processed ') + percentage_text + self.tr(u'% of the files'))
-
-            if self.addDownloadedDataAsLayer:
-                self.instance.addMapLayer(QgsVectorLayer(gpkg_path+ "|layername=" + i.GetName() + "_dissolved", i.GetName()))
-
-        # self.busy_indicator_dialog.hide()
         self.iface.messageBar().pushMessage(self.tr(u'GeoPackage creation finished'), \
             self.tr(u'NLS data download finished. Data located under ') + \
-            gpkg_path, level=3)
+            self.gpkg_path, level=3)
+
+    def dissolveFeatures(self):
+        i = 0
+        conn = ogr.Open(self.gpkg_path)
+        for table in conn:
+            table_name = table.GetName()
+            if table_name not in MTK_PRODUCT_NAMES:
+                continue
+            else:
+                if table_name in MTK_STYLED_LAYERS.keys():
+                    layer_name = MTK_STYLED_LAYERS[table_name]
+                else:
+                    layer_name = "zz_" + table_name
+            params = {
+                'INPUT': self.gpkg_path + "|layername=" + table_name,
+                'FIELD': ['gid'],
+                'OUTPUT': 'ogr:dbname=\'' + self.gpkg_path + '\' table=\"' + layer_name + '\" (geom) sql='
+            }
+            processing.run("native:dissolve", params)
+            percentage = i / float(len(self.selected_mtk_product_types)) * 100.0
+            percentage_text = "%.2f" % round(percentage, 2)
+
+    def cleanUp(self):
+        conn = sqlite3.connect(self.gpkg_path)
+        cur = conn.cursor()
+        for i in MTK_PRODUCT_NAMES:
+            cur.execute("DROP TABLE IF EXISTS " + i)
+        try:
+            with open(os.path.join(self.path, 'data/layer_styles.sql')) as stylefile:
+                cur.executescript(stylefile.read())
+        except FileNotFoundError:
+            self.iface.messageBar().pushMessage("Error", "Failed to load style table from data/layer_styles.sql", level=2, duration=5)
+        finally:
+            conn.commit()
+            conn.close()
 
     def showSettingsDialog(self):
         self.nls_user_key_dialog.dataLocationQgsFileWidget.setStorageMode(QgsFileWidget.GetDirectory)
