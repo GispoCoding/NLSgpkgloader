@@ -795,7 +795,7 @@ class NLSGeoPackageLoader:
             if not geom_union:
                 geom_union = geom
             else:
-                geom_union.combine(geom)
+                geom_union = geom_union.combine(geom)
         dp = combinedGeomLayer.dataProvider()
 
         combinedGeomLayer.startEditing()
