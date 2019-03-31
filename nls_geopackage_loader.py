@@ -337,18 +337,17 @@ class NLSGeoPackageLoader:
 
         result = self.municipalities_dialog.exec_()
         if result:
-            self.newFile = True # TODO: move somewhere else and create an option for the user
             self.fileName = self.municipalities_dialog.fileNameEdit.text().strip()
             if self.fileName == "":
                 QMessageBox.critical(self.iface.mainWindow(), self.tr(u'Invalid filename'), self.tr(u'Please enter a filename'))
                 return
-            else:
-                QSettings().setValue("/NLSgpkgloader/defaultFileName", self.fileName)
             if self.fileName.split('.')[-1].lower() != 'gpkg':
                 self.fileName += '.gpkg'
+            QSettings().setValue("/NLSgpkgloader/defaultFileName", self.fileName)
             self.gpkg_path = os.path.join(self.data_download_dir, self.fileName)
             if os.path.isfile(self.gpkg_path):
-                if self.newFile: # TODO: ask whether to overwrite or not
+                reply = QMessageBox.question(self.iface.mainWindow(), 'Overwrite?', 'Overwrite file ' + self.gpkg_path + '?', QMessageBox.Yes, QMessageBox.No)
+                if reply == QMessageBox.Yes:
                     os.remove(self.gpkg_path)
                 else:
                     return
