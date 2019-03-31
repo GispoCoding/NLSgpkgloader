@@ -838,32 +838,17 @@ class NLSGeoPackageLoader:
                 return
 
     def createDownloadURLS(self, product_key, product_title):
-
         urls = []
-
         if product_key == "https://tiedostopalvelu.maanmittauslaitos.fi/tp/feed/mtp/maastotietokanta/kaikki":
-            urls = self.createTopographicDatabaseDownloadURLS(product_key, product_title)
+            for utm_feature in self.utm25lr_features:
+                sheet_name = utm_feature["LEHTITUNNU"]
+                sn1 = sheet_name[:2]
+                sn2 = sheet_name[:3]
+                modified_key = product_key.replace("/feed/mtp", "/tilauslataus/tuotteet")
+                url = modified_key + "/etrs89/gml/" + sn1 + "/" + sn2 + "/" + sheet_name + "_mtk.zip?api_key="  + self.nls_user_key
+                urls.append((url, product_title, product_key, "gml"))
         else:
             QgsMessageLog.logMessage('Unknown product ' + product_title +  ', please send error report to the author', 'NLSgpkgloader', 2)
             self.iface.messageBar().pushMessage('Unknown product ' + product_title +  ', please send error report to the author', level=2, duration=10)
-
-        #QgsMessageLog.logMessage("URL count: " + str(len(urls)), 'NLSgpkgloader', 0)
-        return urls
-
-    def createTopographicDatabaseDownloadURLS(self, product_key, product_title):
-        # TODO: integrate into createdownloadurls()
-        urls = []
-
-        for mun_utm_feature in self.utm25lr_features:
-            sheet_name = mun_utm_feature['LEHTITUNNU']
-            sn1 = sheet_name[:2]
-            sn2 = sheet_name[:3]
-            #https://tiedostopalvelu.maanmittauslaitos.fi/tp/tilauslataus/tuotteet/maastotietokanta/kaikki/etrs89/gml/L4/L41/L4134L_mtk.zip?token=vk2mphnnvbtrp313ee4amjpo2o
-            modified_key = product_key.replace("/feed/mtp", "/tilauslataus/tuotteet")
-
-            url = modified_key + "/etrs89/gml/" + sn1 + "/" + sn2 + "/" + sheet_name + "_mtk.zip?api_key="  + self.nls_user_key
-            #QgsMessageLog.logMessage(url, 'NLSgpkgloader', 0)
-
-            urls.append((url, product_title, product_key, "gml"))
 
         return urls
