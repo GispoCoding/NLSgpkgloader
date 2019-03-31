@@ -48,6 +48,7 @@ from .nls_geopackage_loader_dialog import NLSGeoPackageLoaderDialog
 
 NLS_USER_KEY_DIALOG_FILE = "nls_geopackage_loader_dialog_NLS_user_key.ui"
 MUNICIPALITIES_DIALOG_FILE = "nls_geopackage_loader_dialog_municipality_selection.ui"
+NLS_PROGRESS_DIALOG_FILE = "nls_geopackage_loader_dialog_progress.ui"
 
 MTK_ALL_PRODUCTS_URL = "https://tiedostopalvelu.maanmittauslaitos.fi/tp/feed/mtp/maastotietokanta/kaikki"
 MTK_ALL_PRODUCTS_DOWNLOAD_URL = "https://tiedostopalvelu.maanmittauslaitos.fi/tp/tilauslataus/tuotteet/maastotietokanta/kaikki"
@@ -131,8 +132,7 @@ MTK_STYLED_LAYERS = {
     "Meri": "54_Meri"
 }
 
-#MTK_PRESELECTED_PRODUCTS = list(MTK_STYLED_LAYERS.keys())
-MTK_PRESELECTED_PRODUCTS = ["Tieviiva", "Puisto", "Vesitorni"]
+MTK_PRESELECTED_PRODUCTS = list(MTK_STYLED_LAYERS.keys())
 
 class NLSGeoPackageLoader:
     """QGIS Plugin Implementation."""
@@ -353,6 +353,11 @@ class NLSGeoPackageLoader:
                 else:
                     return
 
+            self.progress_dialog = uic.loadUi(os.path.join(self.path, NLS_PROGRESS_DIALOG_FILE))
+            self.progress_dialog.progressBar.hide()
+            self.progress_dialog.label.setText('Initializing...')
+            self.progress_dialog.show()
+
             self.utm25lr_features = []
             self.selected_geoms = []
             for feature in self.utm25lr_layer.selectedFeatures():
@@ -383,8 +388,6 @@ class NLSGeoPackageLoader:
                             product_types[key] = value
 
             if len(product_types) > 0 and len(self.selected_geoms) > 0:
-                self.busy_indicator_dialog = QgsBusyIndicatorDialog(self.tr(u'A moment... downloaded 0% of the files '), self.iface.mainWindow())
-                self.busy_indicator_dialog.show()
                 QCoreApplication.processEvents()
 
                 self.getIntersectingFeatures(self.municipality_layer.selectedFeatures(), self.utm25lr_layer, selected_mun_names)
@@ -601,9 +604,12 @@ class NLSGeoPackageLoader:
             percentage_text = "%.2f" % round(percentage, 2)
         except ZeroDivisionError:
             QMessageBox.critical(self.iface.mainWindow(), self.tr(u'Invalid selection'), self.tr(u'Found nothing to download!'))
-            self.busy_indicator_dialog.hide()
+            self.progress_dialog.hide()
             return
 
+        self.progress_dialog.progressBar.reset()
+        self.progress_dialog.progressBar.show()
+        self.progress_dialog.label.setText('Downloading data...')
         QTimer.singleShot(1000, self.downloadOneFile)
 
     def downloadNLSProductTypes(self):
@@ -633,10 +639,7 @@ class NLSGeoPackageLoader:
 
     def downloadOneFile(self):
         if self.download_count == self.total_download_count or self.download_count >= len(self.all_urls):
-            QgsMessageLog.logMessage("Should not be possible to be here", 'NLSgpkgloader', 2)
-            QgsMessageLog.logMessage("self.download_count: " + str(self.download_count), 'NLSgpkgloader', 0)
-            QgsMessageLog.logMessage("Total download count: " + str(self.total_download_count), 'NLSgpkgloader', 0)
-            self.busy_indicator_dialog.hide()
+            QgsMessageLog.logMessage("download_count == total_download_count or download_count >= len(all_urls)", 'NLSgpkgloader', 2)
             return
 
         url = self.all_urls[self.download_count][0]
@@ -673,22 +676,18 @@ class NLSGeoPackageLoader:
 
         self.download_count += 1
         percentage = self.download_count / float(self.total_download_count) * 100.0
-        percentage_text = "%.2f" % round(percentage, 2)
-
-        self.busy_indicator_dialog.setMessage(self.tr(u'A moment... downloaded ') + percentage_text + self.tr(u'% of the files '))
-
-        QgsMessageLog.logMessage("A moment... downloaded " + percentage_text + "% of the files", 'NLSgpkgloader', 0)
+        self.progress_dialog.progressBar.setValue(percentage)
 
         if self.download_count == self.total_download_count:
             QgsMessageLog.logMessage("done downloading data", 'NLSgpkgloader', 0)
-            self.busy_indicator_dialog.hide()
             self.createGeoPackage()
         else:
             QTimer.singleShot(10, self.downloadOneFile)
 
     def createGeoPackage(self):
         '''Creates a GeoPackage from the downloaded MTK data'''
-
+        self.progress_dialog.progressBar.reset()
+        self.progress_dialog.label.setText('Writing layers to GeoPackage...')
         for dlIndex in range(0, self.total_download_count):
             url = self.all_urls[dlIndex][0]
             url_parts = url.split('/')
@@ -698,6 +697,9 @@ class NLSGeoPackageLoader:
             dir_path = os.path.join(self.data_download_dir, data_dir_name)
             dir_path = os.path.join(dir_path, file_name.split('.')[0])
             data_type = self.all_urls[dlIndex][3]
+
+            percentage = dlIndex / float(self.total_download_count) * 100.0
+            self.progress_dialog.progressBar.setValue(percentage)
 
             for listed_file_name in os.listdir(dir_path):
                 if data_type == "gml" and listed_file_name.endswith(".xml"):
@@ -750,6 +752,7 @@ class NLSGeoPackageLoader:
         self.dissolveFeatures()
         self.clipLayers()
         self.cleanUp()
+
         if self.addDownloadedDataAsLayer:
             conn = ogr.Open(self.gpkg_path)
             for i in conn:
@@ -761,11 +764,17 @@ class NLSGeoPackageLoader:
             self.gpkg_path, level=3)
 
     def dissolveFeatures(self):
-        i = 0
+        self.progress_dialog.label.setText('Dissolving features...')
+        self.progress_dialog.progressBar.reset()
         conn = ogr.Open(self.gpkg_path)
+        i = 0
+        total_tables = len(conn)
         for table in conn:
+            i += 1
             table_name = table.GetName()
             if table_name not in MTK_PRODUCT_NAMES:
+                percentage = i / float(total_tables) * 100.0
+                self.progress_dialog.progressBar.setValue(percentage)
                 continue
             layer_name = "d_" + table_name
             params = {
@@ -774,10 +783,12 @@ class NLSGeoPackageLoader:
                 'OUTPUT': "ogr:dbname='" + self.gpkg_path + '\' table="' + layer_name + '" (geom) sql='
             }
             processing.run("native:dissolve", params)
-            percentage = i / float(len(self.selected_mtk_product_types)) * 100.0
-            percentage_text = "%.2f" % round(percentage, 2)
+            percentage = i / float(total_tables) * 100.0
+            self.progress_dialog.progressBar.setValue(percentage)
 
     def clipLayers(self):
+        self.progress_dialog.label.setText('Clipping layers...')
+        self.progress_dialog.progressBar.reset()
         combinedGeomLayer = QgsVectorLayer("MultiPolygon?crs=EPSG:3067", "clipLayer", "memory")
         geom_union = None
         for geom in self.selected_geoms:
@@ -798,9 +809,14 @@ class NLSGeoPackageLoader:
         geomUnionLayer = result['OUTPUT']
 
         conn = ogr.Open(self.gpkg_path)
+        total_tables = len(conn)
+        i = 0
         for table in conn:
+            i += 1
             table_name = table.GetName()
             if table_name[2:] not in MTK_PRODUCT_NAMES:
+                percentage = i / float(total_tables) * 100.0
+                self.progress_dialog.progressBar.setValue(percentage)
                 continue
             layer_name = table_name[2:]
             if layer_name in MTK_STYLED_LAYERS.keys():
@@ -813,15 +829,27 @@ class NLSGeoPackageLoader:
                 'OUTPUT': "ogr:dbname='" + self.gpkg_path + '\' table="' + layer_name + '" (geom) sql='
             }
             processing.run("native:clip", params)
+            percentage = i / float(total_tables) * 100.0
+            self.progress_dialog.progressBar.setValue(percentage)
 
     def cleanUp(self):
+        self.progress_dialog.label.setText('Cleaning up...')
+        self.progress_dialog.progressBar.reset()
+
         conn = sqlite3.connect(self.gpkg_path)
         cur = conn.cursor()
         cur.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
         result = cur.fetchall()
+        total_tables = len(result)
+        i = 0
         for table in result:
             if table[0][:2] == 'd_' or table[0] in MTK_PRODUCT_NAMES:
                 cur.execute("DROP TABLE " + table[0])
+            i += 1
+            percentage = i / float(total_tables) * 100.0
+            self.progress_dialog.progressBar.setValue(percentage)
+        self.progress_dialog.label.setText('Writing styles...')
+        self.progress_dialog.progressBar.hide()
         try:
             with open(os.path.join(self.path, 'data/layer_styles.sql')) as stylefile:
                 cur.executescript(stylefile.read())
@@ -830,6 +858,7 @@ class NLSGeoPackageLoader:
         finally:
             conn.commit()
             conn.close()
+            self.progress_dialog.hide()
 
     def showSettingsDialog(self):
         self.nls_user_key_dialog.dataLocationQgsFileWidget.setStorageMode(QgsFileWidget.GetDirectory)

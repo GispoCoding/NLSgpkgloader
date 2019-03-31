@@ -46,7 +46,7 @@ PY_FILES = \
 	__init__.py \
 	nls_geopackage_loader.py nls_geopackage_loader_dialog.py
 
-UI_FILES = nls_geopackage_loader_dialog_base.ui nls_geopackage_loader_dialog_municipality_selection.ui nls_geopackage_loader_dialog_NLS_user_key.ui
+UI_FILES = nls_geopackage_loader_dialog_base.ui nls_geopackage_loader_dialog_municipality_selection.ui nls_geopackage_loader_dialog_NLS_user_key.ui nls_geopackage_loader_dialog_progress.ui
 
 EXTRAS = metadata.txt icon.png
 
