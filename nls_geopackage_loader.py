@@ -558,46 +558,28 @@ class NLSGeoPackageLoader:
 
         return True
 
-    def getMunicipalityIntersectingFeatures(self, selected_mun_names, selected_mun_features, layer):
-        expression = ''
-        for mun in selected_mun_names:
-            expression += u'"NAMEFIN" = \'' + mun + u'\' OR '
-        expression = expression[:-4]
+    def getIntersectingFeatures(self, features, layer, selected_mun_names=None):
+        if selected_mun_names:
+            expression = ''
+            for mun in selected_mun_names:
+                expression += u'"NAMEFIN" = \'' + mun + u'\' OR '
+            expression = expression[:-4]
 
-        iter = self.municipality_layer.getFeatures(expression)
-        count = 0
-        for feature in iter:
-            #QgsMessageLog.logMessage(str(count), 'NLSgpkgloader', 0)
-            count += 1
-            mun_geom = feature.geometry()
+            iter = self.municipality_layer.getFeatures(expression)
+            for feature in iter:
+                mun_geom = feature.geometry()
+                for layer_feature in layer.getFeatures():
+                    layer_geom = layer_feature.geometry()
+                    if mun_geom.intersects(layer_geom):
+                        if feature not in self.utm25lr_features:
+                            self.utm25lr_features.append(layer_feature)
 
-            layer_iter = layer.getFeatures()
-            for layer_feature in layer_iter:
+        for feature in features:
+            feat_geom = feature.geometry()
+            for layer_feature in layer.getFeatures():
                 layer_geom = layer_feature.geometry()
-                if mun_geom.intersects(layer_geom):
+                if feat_geom.intersects(layer_geom):
                     if feature not in self.utm25lr_features:
-                        self.utm25lr_features.append(layer_feature)
-
-        for feature in selected_mun_features:
-            count += 1
-            mun_geom = feature.geometry()
-            layer_iter = layer.getFeatures()
-            for layer_feature in layer_iter:
-                layer_geom = layer_feature.geometry()
-                if mun_geom.intersects(layer_geom):
-                    if feature not in self.utm25lr_features:
-                        self.utm25lr_features.append(layer_feature)
-
-    def getSeatileIntersectingFeatures(self, selected_seatile_features, layer):
-        count = 0
-        for feature in selected_seatile_features:
-            count += 1
-            seatile_geom = feature.geometry()
-            layer_iter = layer.getFeatures()
-            for layer_feature in layer_iter:
-                layer_geom = layer_feature_geometry()
-                if seatile_geom.intersects(layer_geom):
-                    if layer_feature not in self.utm25lr_features:
                         self.utm25lr_features.append(layer_feature)
 
     def downloadData(self, product_types):
