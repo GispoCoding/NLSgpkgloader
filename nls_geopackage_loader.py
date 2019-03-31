@@ -783,8 +783,11 @@ class NLSGeoPackageLoader:
     def cleanUp(self):
         conn = sqlite3.connect(self.gpkg_path)
         cur = conn.cursor()
-        for i in MTK_PRODUCT_NAMES:
-            cur.execute("DROP TABLE IF EXISTS " + i)
+        cur.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+        result = cur.fetchall()
+        for table in result:
+            if table[0][:2] == 'd_' or table[0] in MTK_PRODUCT_NAMES:
+                cur.execute("DROP TABLE " + table[0])
         try:
             with open(os.path.join(self.path, 'data/layer_styles.sql')) as stylefile:
                 cur.executescript(stylefile.read())
