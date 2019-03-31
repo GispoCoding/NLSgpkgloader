@@ -796,18 +796,11 @@ class NLSGeoPackageLoader:
 
     def showSettingsDialog(self):
         self.nls_user_key_dialog.dataLocationQgsFileWidget.setStorageMode(QgsFileWidget.GetDirectory)
-
         self.nls_user_key_dialog.userKeyLineEdit.setText(self.nls_user_key)
         self.nls_user_key_dialog.dataLocationQgsFileWidget.setFilePath(QSettings().value("/NLSgpkgloader/dataDownloadDir", os.path.join(self.path, "data"), type=str))
-        self.nls_user_key_dialog.addDownloadedDataAsLayerCheckBox.setChecked(self.addDownloadedDataAsLayer)
-        self.nls_user_key_dialog.showMunicipalitiesAsLayerCheckBox.setChecked(self.showMunicipalitiesAsLayer)
-        self.nls_user_key_dialog.showUTMGridsAsLayerCheckBox.setChecked(self.showUTMGridsAsLayer)
 
         self.nls_user_key_dialog.show()
-
-        # Run the dialog event loop
         result = self.nls_user_key_dialog.exec_()
-        # See if OK was pressed
         if result:
             self.nls_user_key = self.nls_user_key_dialog.userKeyLineEdit.text().strip()
             if self.nls_user_key == "":
@@ -815,22 +808,9 @@ class NLSGeoPackageLoader:
                 QMessageBox.critical(self.iface.mainWindow(), self.tr(u'User-key is needed'), self.tr(u'Data cannot be downloaded without the NLS key'))
                 return
             self.data_download_dir = self.nls_user_key_dialog.dataLocationQgsFileWidget.filePath()
-            self.addDownloadedDataAsLayer = self.nls_user_key_dialog.addDownloadedDataAsLayerCheckBox.isChecked()
-            self.showMunicipalitiesAsLayer = self.nls_user_key_dialog.showMunicipalitiesAsLayerCheckBox.isChecked()
-            self.showSeatilesAsLayer = True # TODO: create checkbox in UI and check isChecked()
-            self.showUTMGridsAsLayer = self.nls_user_key_dialog.showUTMGridsAsLayerCheckBox.isChecked()
-
-            if self.showMunicipalitiesAsLayer or self.showUTMGridsAsLayer or self.showSeatilesAsLayer:
-                if not self.loadLayers():
-                    QMessageBox.critical(self.iface.mainWindow(), self.tr(u'Failed to load layers'), self.tr(u'Check that necessary files exist in data folder'))
-            # TODO: unloadLayers()
 
             QSettings().setValue("/NLSgpkgloader/userKey", self.nls_user_key)
             QSettings().setValue("/NLSgpkgloader/dataDownloadDir", self.data_download_dir)
-            QSettings().setValue("/NLSgpkgloader/addDownloadedDataAsLayer", self.addDownloadedDataAsLayer)
-            QSettings().setValue("/NLSgpkgloader/showMunicipalitiesAsLayer", self.showMunicipalitiesAsLayer)
-            QSettings().setValue("/NLSgpkgloader/showUTMGridsAsLayer", self.showUTMGridsAsLayer)
-
         else:
             if self.nls_user_key == "":
                 # cannot work without the key, so user needs to be notified

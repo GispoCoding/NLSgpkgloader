@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>411</width>
-    <height>442</height>
+    <width>497</width>
+    <height>256</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -66,33 +66,6 @@
        </property>
        <property name="wordWrap">
         <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="addDownloadedDataAsLayerCheckBox">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>Add downloaded data as layer(s) to QGIS</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="showMunicipalitiesAsLayerCheckBox">
-       <property name="text">
-        <string>Show municipalities as a layer in QGIS</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="showUTMGridsAsLayerCheckBox">
-       <property name="text">
-        <string>Show UTM grids as layers in QGIS</string>
        </property>
       </widget>
      </item>
