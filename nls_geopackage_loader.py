@@ -170,7 +170,13 @@ class NLSGeoPackageLoader:
         # Must be set in initGui() to survive plugin reloads
         self.first_start = None
 
-        self.initWithNLSData()
+        self.path = os.path.dirname(__file__)
+        self.data_download_dir = self.path
+
+        self.nls_user_key_dialog = uic.loadUi(os.path.join(self.path, NLS_USER_KEY_DIALOG_FILE))
+        self.first_run = QSettings().value("/NLSgpkgloader/first_run", True, type=bool)
+        if self.first_run:
+            QSettings().setValue("/NLSgpkgloader/first_run", False)
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -791,16 +797,6 @@ class NLSGeoPackageLoader:
                 # cannot work without the key, so user needs to be notified
                 QMessageBox.critical(self.iface.mainWindow(), self.tr(u'User-key is needed'), self.tr(u'Data cannot be downloaded without the NLS key'))
                 return
-
-    def initWithNLSData(self):
-        self.path = os.path.dirname(__file__)
-        self.data_download_dir = self.path
-        self.showSeatilesAsLayer = True
-
-        self.nls_user_key_dialog = uic.loadUi(os.path.join(self.path, NLS_USER_KEY_DIALOG_FILE))
-        self.first_run = QSettings().value("/NLSgpkgloader/first_run", True, type=bool)
-        if self.first_run:
-            QSettings().setValue("/NLSgpkgloader/first_run", False)
 
     def createDownloadURLS(self, product_key, product_title):
 
