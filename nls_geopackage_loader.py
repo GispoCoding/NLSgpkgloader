@@ -596,11 +596,13 @@ class NLSGeoPackageLoader:
             self.all_urls.extend(urls)
             self.total_download_count += len(urls)
 
-        percentage = self.download_count / float(self.total_download_count) * 100.0
-        percentage_text = "%.2f" % round(percentage, 2)
-
-        QgsMessageLog.logMessage("A moment... downloaded " + percentage_text + "% of the files", 'NLSgpkgloader', 0)
-        #QgsMessageLog.logMessage(str(self.total_download_count), 'NLSgpkgloader', 0)
+        try:
+            percentage = self.download_count / float(self.total_download_count) * 100.0
+            percentage_text = "%.2f" % round(percentage, 2)
+        except ZeroDivisionError:
+            QMessageBox.critical(self.iface.mainWindow(), self.tr(u'Invalid selection'), self.tr(u'Found nothing to download!'))
+            self.busy_indicator_dialog.hide()
+            return
 
         QTimer.singleShot(1000, self.downloadOneFile)
 
