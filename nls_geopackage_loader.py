@@ -54,26 +54,29 @@ MTK_ALL_PRODUCTS_URL = "https://tiedostopalvelu.maanmittauslaitos.fi/tp/feed/mtp
 MTK_ALL_PRODUCTS_DOWNLOAD_URL = "https://tiedostopalvelu.maanmittauslaitos.fi/tp/tilauslataus/tuotteet/maastotietokanta/kaikki"
 MTK_LAYERS_KEY_PREFIX = "MTK"
 MTK_ALL_PRODUCTS_TITLE = "Maastotietokanta, kaikki kohteet"
-MTK_PRODUCT_NAMES = ["YhteisetTyypit", "Aallonmurtaja", "AidanSymboli", "Aita", "Allas", "AluemerenUlkoraja", "AmpumaAlue",
-                    "Ankkuripaikka", "Autoliikennealue", "HarvaLouhikko", "Hautausmaa", "Hietikko", "Hylky", "HylynSyvyys",
-                    "IlmaradanKannatinpylvas", "Ilmarata", "Jyrkanne", "Kaatopaikka", "Kaislikko", "KallioAlue", "KallioSymboli",
-                    "Kalliohalkeama", "Kansallispuisto", "Karttasymboli", "Kellotapuli", "Kivi", "Kivikko", "Korkeuskayra",
-                    "KorkeuskayranKorkeusarvo", "Koski", "KunnanHallintokeskus", "KunnanHallintoraja", "Kunta", "Lahde",
-                    "Lahestymisvalo", "Lentokenttaalue", "Louhos", "Luiska", "Luonnonpuisto", "Luonnonsuojelualue",
-                    "MaaAineksenottoalue", "Maasto2kuvionReuna", "MaastokuvionReuna", "Maatalousmaa", "MaatuvaVesialue",
-                    "Masto", "MastonKorkeus", "Matalikko", "MerkittavaLuontokohde", "MetsamaanKasvillisuus", "MetsamaanMuokkaus",
-                    "MetsanRaja", "Muistomerkki", "Muuntaja", "Muuntoasema", "Nakotorni", "Niitty", "Osoitepiste", "Paikannimi",
-                    "Pato", "Pelastuskoodipiste", "PistolaituriViiva", "Portti", "Puisto", "PutkijohdonSymboli", "Putkijohto",
-                    "Puu", "Puurivi", "RajavyohykkeenTakaraja", "Rakennelma", "Rakennus", "Rakennusreunaviiva", "Rautatie",
-                    "Rautatieliikennepaikka", "RautatienSymboli", "Retkeilyalue", "Sahkolinja", "SahkolinjanSymboli", "Savupiippu",
-                    "SavupiipunKorkeus", "Selite", "SisaistenAluevesienUlkoraja", "Soistuma", "Sulkuportti", "Suo", "SuojaAlue",
-                    "SuojaAlueenReunaviiva", "Suojametsa", "Suojanne", "SuojelualueenReunaviiva", "SuurjannitelinjanPylvas",
-                    "Syvyyskayra", "SyvyyskayranSyvyysarvo", "Syvyyspiste", "TaajaanRakennettuAlue", "TaajaanRakennetunAlueenReuna",
-                    "Taytemaa", "Tervahauta", "Tiesymboli", "Tienroteksti", "Tieviiva", "Tulentekopaikka", "TulvaAlue",
-                    "TunnelinAukko", "Turvalaite", "Tuulivoimala", "Uittolaite", "Uittoranni", "UlkoJaSisasaaristonRaja",
-                    "UrheiluJaVirkistysalue", "ValtakunnanRajapyykki", "Varastoalue", "Vedenottamo", "VedenpinnanKorkeusluku",
-                    "Vesiasteikko", "Vesikivi", "Vesikivikko", "Vesikulkuvayla", "VesikulkuvaylanKulkusuunta", "VesikulkuvaylanTeksti",
-                    "Vesikuoppa", "Vesitorni", "Viettoviiva", "Virtausnuoli", "VirtavesiKapea", "VirtavesiAlue"]
+MTK_PRODUCT_NAMES = [
+    "YhteisetTyypit", "Aallonmurtaja", "AidanSymboli", "Aita", "Allas", "AluemerenUlkoraja",
+    "AmpumaAlue", "Ankkuripaikka", "Autoliikennealue", "HarvaLouhikko", "Hautausmaa", "Hietikko",
+    "Hylky", "HylynSyvyys", "IlmaradanKannatinpylvas", "Ilmarata", "Jyrkanne", "Kaatopaikka", "Kaislikko",
+    "KallioAlue", "KallioSymboli", "Kalliohalkeama", "Kansallispuisto", "Karttasymboli", "Kellotapuli", "Kivi",
+    "Kivikko", "Korkeuskayra", "KorkeuskayranKorkeusarvo", "Koski", "KunnanHallintokeskus", "KunnanHallintoraja",
+    "Kunta", "Lahde", "Lahestymisvalo", "Lentokenttaalue", "Louhos", "Luiska", "Luonnonpuisto", "Luonnonsuojelualue",
+    "MaaAineksenottoalue", "Maasto2kuvionReuna", "MaastokuvionReuna", "Maatalousmaa", "MaatuvaVesialue",
+    "Masto", "MastonKorkeus", "Matalikko", "Meri", "MerkittavaLuontokohde", "MetsamaanKasvillisuus",
+    "MetsamaanMuokkaus", "MetsanRaja", "Muistomerkki", "Muuntaja", "Muuntoasema", "Nakotorni", "Niitty",
+    "Osoitepiste", "Paikannimi", "Pato", "Pelastuskoodipiste", "PistolaituriViiva", "Portti", "Puisto",
+    "PutkijohdonSymboli", "Putkijohto", "Puu", "Puurivi", "RajavyohykkeenTakaraja", "Rakennelma", "Rakennus",
+    "Rakennusreunaviiva", "Rautatie", "Rautatieliikennepaikka", "RautatienSymboli", "Retkeilyalue", "Sahkolinja",
+    "SahkolinjanSymboli", "Savupiippu", "SavupiipunKorkeus", "Selite", "SisaistenAluevesienUlkoraja", "Soistuma",
+    "Sulkuportti", "Suo", "SuojaAlue", "SuojaAlueenReunaviiva", "Suojametsa", "Suojanne", "SuojelualueenReunaviiva",
+    "SuurjannitelinjanPylvas", "Syvyyskayra", "SyvyyskayranSyvyysarvo", "Syvyyspiste", "TaajaanRakennettuAlue",
+    "TaajaanRakennetunAlueenReuna", "Taytemaa", "Tervahauta", "Tiesymboli", "Tienroteksti", "Tieviiva",
+    "Tulentekopaikka", "TulvaAlue", "TunnelinAukko", "Turvalaite", "Tuulivoimala", "Uittolaite", "Uittoranni",
+    "UlkoJaSisasaaristonRaja", "UrheiluJaVirkistysalue", "ValtakunnanRajapyykki", "Varastoalue", "Vedenottamo",
+    "VedenpinnanKorkeusluku", "Vesiasteikko", "Vesikivi", "Vesikivikko", "Vesikulkuvayla",
+    "VesikulkuvaylanKulkusuunta", "VesikulkuvaylanTeksti", "Vesikuoppa", "Vesitorni", "Viettoviiva", "Virtausnuoli",
+    "VirtavesiKapea", "VirtavesiAlue"
+]
 
 MTK_STYLED_LAYERS = {
     "Vesitorni": "01_Vesitorni",
@@ -559,7 +562,6 @@ class NLSGeoPackageLoader:
             if lnode.layer().dataProvider().dataSourceUri() == self.utm200_layer.dataProvider().dataSourceUri():
                 self.utm200_layer = lnode.layer()
 
-
         return True
 
     def getIntersectingFeatures(self, features, layer, selected_mun_names=None):
@@ -844,6 +846,7 @@ class NLSGeoPackageLoader:
         for table in result:
             if table[0][:2] == 'd_' or table[0] in MTK_PRODUCT_NAMES:
                 cur.execute("DROP TABLE " + table[0])
+                cur.execute("DROP TABLE IF EXISTS rtree_" + table[0])
             i += 1
             percentage = i / float(total_tables) * 100.0
             self.progress_dialog.progressBar.setValue(percentage)
