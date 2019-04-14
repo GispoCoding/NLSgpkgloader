@@ -48,6 +48,7 @@ from .nls_geopackage_loader_dialog import NLSGeoPackageLoaderDialog
 from .nls_geopackage_loader_mtk_productdata import (MTK_PRODUCT_NAMES,
     MTK_ALL_PRODUCTS_URL, MTK_ALL_PRODUCTS_DOWNLOAD_URL, MTK_LAYERS_KEY_PREFIX,
     MTK_STYLED_LAYERS, MTK_PRESELECTED_PRODUCTS, MTK_ALL_PRODUCTS_TITLE)
+from nls_geopackage_loader_tasks import *
 
 NLS_USER_KEY_DIALOG_FILE = "nls_geopackage_loader_dialog_NLS_user_key.ui"
 MUNICIPALITIES_DIALOG_FILE = "nls_geopackage_loader_dialog_municipality_selection.ui"
@@ -618,66 +619,8 @@ class NLSGeoPackageLoader:
         '''Creates a GeoPackage from the downloaded MTK data'''
         self.progress_dialog.progressBar.reset()
         self.progress_dialog.label.setText('Writing layers to GeoPackage...')
-        for dlIndex in range(0, self.total_download_count):
-            url = self.all_urls[dlIndex][0]
-            url_parts = url.split('/')
-            file_name = url_parts[-1].split('?')[0]
-            data_dir_name = self.all_urls[dlIndex][1]
-            data_dir_name = data_dir_name.replace(":", "_suhde_")
-            dir_path = os.path.join(self.data_download_dir, data_dir_name)
-            dir_path = os.path.join(dir_path, file_name.split('.')[0])
-            data_type = self.all_urls[dlIndex][3]
-
-            percentage = dlIndex / float(self.total_download_count) * 100.0
-            self.progress_dialog.progressBar.setValue(percentage)
-
-            for listed_file_name in os.listdir(dir_path):
-                if data_type == "gml" and listed_file_name.endswith(".xml"):
-                    driver = ogr.GetDriverByName('GML')
-                    data_source = driver.Open(os.path.join(dir_path, listed_file_name), 0)
-                    layer_count = data_source.GetLayerCount()
-                    mtk_layer_count = 0 # Used for breaking from the for loop when all MTK layers chosen by the user have been added
-                    for i in range(layer_count):
-                        layer = data_source.GetLayerByIndex(i)
-                        layer_name = layer.GetName()
-                        if url.startswith(MTK_ALL_PRODUCTS_DOWNLOAD_URL):
-                            for product_type in self.selected_mtk_product_types:
-                                if product_type == layer_name:
-                                    new_layer = QgsVectorLayer(os.path.join(dir_path, listed_file_name) + "|layerid=" + str(i), layer_name, "ogr")
-                                    if new_layer.isValid():
-                                        options = QgsVectorFileWriter.SaveVectorOptions()
-                                        options.layerName = layer_name
-                                        options.driverName = "GPKG"
-                                        options.fileEncoding = "UTF-8"
-                                        if os.path.isfile(self.gpkg_path):
-                                            if QgsVectorLayer(self.gpkg_path + "|layername=" + layer_name).isValid():
-                                                options.actionOnExistingFile = QgsVectorFileWriter.AppendToLayerNoNewFields
-                                            else:
-                                                options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
-                                        else:
-                                            options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
-                                        e = QgsVectorFileWriter.writeAsVectorFormat(new_layer, self.gpkg_path, options)
-                                        if e[0]:
-                                            QgsMessageLog.logMessage("Failed to write layer " + layer_name + " to geopackage", 'NLSgpkgloader', 2)
-                                            break
-                                        else:
-                                            QgsMessageLog.logMessage("Finished writing GeoPackage", 'NLSgpkgloader', 0)
-                                        # self.instance.addMapLayer(new_layer)
-                                        mtk_layer_count += 1
-                                    else:
-                                        # TODO: handle invalid layer error
-                                        #QgsMessageLog.logMessage("Invalid layer: " + listed_file_name + ":" layer_name, 'NLSgpkgloader', 2)
-                                        pass
-                                    break
-                        else:
-                            QgsMessageLog.logMessage("Download URL doesn't start with MTK_ALL_PRODUCTS_DOWNLOAD_URL", 'NLSgpkgloader', 2)
-                            # new_layer = QgsVectorLayer(os.path.join(dir_path, listed_file_name) + "|layerid=" + str(i), layer_name, "ogr")
-                            # if new_layer.isValid():
-                            #     self.instance.addMapLayer(new_layer)
-                        if (url.startswith(MTK_ALL_PRODUCTS_DOWNLOAD_URL) and mtk_layer_count == len(self.selected_mtk_product_types)):
-                            break
-                else:
-                    QgsMessageLog.logMessage("cannot add the data type " + data_type + ", listed_file_name: " + listed_file_name, 'NLSgpkgloader', 0)
+        writeTask = CreateGeoPackageTask('Write GML to GPKG', self.all_urls, self.total_download_count, self.selected_mtk_product_types, self.gpkg_path)
+        writeTask.progressChanged.connect(lambda: self.progress_dialog.progressBar.setValue(writeTask.progress()))
 
         self.dissolveFeatures()
         self.clipLayers()
