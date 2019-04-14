@@ -618,7 +618,13 @@ class NLSGeoPackageLoader:
 
         url = "https://tiedostopalvelu.maanmittauslaitos.fi/tp/feed/mtp?api_key=" + self.nls_user_key
         # TODO: use qgis.gui.QgsFileDownloader?
-        r = requests.get(url)
+        self.verify = True
+        try:
+            r = requests.get(url, verify=self.verify)
+        except requests.exceptions.SSLError:
+            # TODO: warn user of certification fail
+            self.verify = False
+            r = requests.get(url, verify=self.verify)
 
         e = xml.etree.ElementTree.fromstring(r.text)
 
@@ -645,7 +651,7 @@ class NLSGeoPackageLoader:
 
         url = self.all_urls[self.download_count][0]
         QgsMessageLog.logMessage(url, 'NLSgpkgloader', 0)
-        r = requests.get(url, stream=True)
+        r = requests.get(url, stream=True, verify=self.verify)
         # TODO check r.status_code & r.ok
 
         url_parts = url.split('/')
