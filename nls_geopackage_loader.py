@@ -619,13 +619,17 @@ class NLSGeoPackageLoader:
         '''Creates a GeoPackage from the downloaded MTK data'''
         self.progress_dialog.progressBar.reset()
         self.progress_dialog.label.setText('Writing layers to GeoPackage...')
-        writeTask = CreateGeoPackageTask('Write GML to GPKG', self.all_urls, self.total_download_count, self.selected_mtk_product_types, self.gpkg_path)
+        writeTask = CreateGeoPackageTask('Write GML to GPKG', self.all_urls, self.total_download_count, self.selected_mtk_product_types, self.data_download_dir, self.gpkg_path)
         writeTask.progressChanged.connect(lambda: self.progress_dialog.progressBar.setValue(writeTask.progress()))
 
-        self.dissolveFeatures()
-        self.clipLayers()
-        self.cleanUp()
+        QgsApplication.taskManager().addTask(writeTask)
+        # self.dissolveFeatures()
+        # self.clipLayers()
+        # self.cleanUp()
 
+        # QgsApplication.taskManager().allTasksFinished.connect(self.finish())
+
+    def finish(self):
         if self.addDownloadedDataAsLayer:
             conn = ogr.Open(self.gpkg_path)
             for i in conn:

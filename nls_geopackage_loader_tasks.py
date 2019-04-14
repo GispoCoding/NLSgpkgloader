@@ -4,11 +4,12 @@ from osgeo import ogr
 from qgis.core import (QgsApplication, QgsTask, QgsMessageLog, QgsVectorLayer, QgsVectorFileWriter)
 
 class CreateGeoPackageTask(QgsTask):
-    def __init__(self, description, urls, dlcount, products, path):
+    def __init__(self, description, urls, dlcount, products, dlpath, path):
         super().__init__(description, QgsTask.CanCancel)
         self.all_urls = urls
         self.total_download_count = dlcount
         self.products = products
+        self.data_download_dir = dlpath
         self.gpkg_path = path
 
     def run(self):
@@ -34,8 +35,6 @@ class CreateGeoPackageTask(QgsTask):
                     for i in range(layer_count):
                         layer = data_source.GetLayerByIndex(i)
                         layer_name = layer.GetName()
-                        # for product_type in self.products:
-                        #     if product_type == layer_name:
                         if layer_name in self.products:
                             new_layer = QgsVectorLayer(os.path.join(dir_path, listed_file_name) + "|layerid=" + str(i), layer_name, "ogr")
                             if new_layer.isValid():
@@ -64,7 +63,7 @@ class CreateGeoPackageTask(QgsTask):
                             break
                 else:
                     QgsMessageLog.logMessage("cannot add the data type " + data_type + ", listed_file_name: " + listed_file_name, 'NLSgpkgloader', 0)
+        return True
 
-
-    def finished(self, result):
-        pass
+    # def finished(self, result):
+    #     pass
