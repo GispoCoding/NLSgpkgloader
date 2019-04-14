@@ -1,7 +1,9 @@
 import os
+import processing
 from osgeo import ogr
 
-from qgis.core import (QgsApplication, QgsTask, QgsMessageLog, QgsVectorLayer, QgsVectorFileWriter)
+from qgis.core import (QgsApplication, QgsTask, QgsMessageLog, QgsVectorLayer, QgsVectorFileWriter, QgsFeature)
+from .nls_geopackage_loader_mtk_productdata import MTK_PRODUCT_NAMES, MTK_STYLED_LAYERS
 
 class CreateGeoPackageTask(QgsTask):
     def __init__(self, description, urls, dlcount, products, dlpath, path):
@@ -65,5 +67,81 @@ class CreateGeoPackageTask(QgsTask):
                     QgsMessageLog.logMessage("cannot add the data type " + data_type + ", listed_file_name: " + listed_file_name, 'NLSgpkgloader', 0)
         return True
 
-    # def finished(self, result):
-    #     pass
+
+class DissolveFeaturesTask(QgsTask):
+    def __init__(self, description, path):
+        super().__init__(description, QgsTask.CanCancel)
+        self.gpkg_path = path
+
+    def run(self):
+        conn = ogr.Open(self.gpkg_path)
+        i = 0
+        total_tables = len(conn)
+        for table in conn:
+            i += 1
+            table_name = table.GetName()
+            if table_name not in MTK_PRODUCT_NAMES:
+                percentage = i / float(total_tables) * 100.0
+                self.setProgress(percentage)
+                continue
+            layer_name = "d_" + table_name
+            params = {
+                'INPUT': self.gpkg_path + "|layername=" + table_name,
+                'FIELD': ['gid'],
+                'OUTPUT': "ogr:dbname='" + self.gpkg_path + '\' table="' + layer_name + '" (geom) sql='
+            }
+            processing.run("native:dissolve", params)
+            percentage = i / float(total_tables) * 100.0
+            self.setProgress(percentage)
+        return True
+
+class ClipLayersTask(QgsTask):
+    def __init__(self, description, selected_geoms, path):
+        super().__init__(description, QgsTask.CanCancel)
+        self.selected_geoms = selected_geoms
+        self.gpkg_path = path
+
+    def run(self):
+        combinedGeomLayer = QgsVectorLayer("MultiPolygon?crs=EPSG:3067", "clipLayer", "memory")
+        geom_union = None
+        for geom in self.selected_geoms:
+            if not geom_union:
+                geom_union = geom
+            else:
+                geom_union = geom_union.combine(geom)
+        dp = combinedGeomLayer.dataProvider()
+
+        combinedGeomLayer.startEditing()
+        feat = QgsFeature()
+        feat.setGeometry(geom_union)
+        dp.addFeature(feat)
+        combinedGeomLayer.commitChanges()
+
+        params = {'INPUT': combinedGeomLayer, 'OUTPUT': 'memory:geomUnionLayer'}
+        result = processing.run("native:dissolve", params)
+        geomUnionLayer = result['OUTPUT']
+
+        conn = ogr.Open(self.gpkg_path)
+        total_tables = len(conn)
+        i = 0
+        for table in conn:
+            i += 1
+            table_name = table.GetName()
+            if table_name[2:] not in MTK_PRODUCT_NAMES:
+                percentage = i / float(total_tables) * 100.0
+                self.setProgress(percentage)
+                continue
+            layer_name = table_name[2:]
+            if layer_name in MTK_STYLED_LAYERS.keys():
+                layer_name = MTK_STYLED_LAYERS[layer_name]
+            else:
+                layer_name = 'zz_' + layer_name
+            params = {
+                'INPUT': self.gpkg_path + "|layername=" + table_name,
+                'OVERLAY': geomUnionLayer,
+                'OUTPUT': "ogr:dbname='" + self.gpkg_path + '\' table="' + layer_name + '" (geom) sql='
+            }
+            processing.run("native:clip", params)
+            percentage = i / float(total_tables) * 100.0
+            self.setProgress(percentage)
+        return True
