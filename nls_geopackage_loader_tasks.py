@@ -1,19 +1,19 @@
 import os
 import processing
+import sqlite3
 from osgeo import ogr
 
 from qgis.core import (QgsApplication, QgsTask, QgsMessageLog, QgsVectorLayer, QgsVectorFileWriter, QgsFeature)
 from .nls_geopackage_loader_mtk_productdata import MTK_PRODUCT_NAMES, MTK_STYLED_LAYERS
 
 class CreateGeoPackageTask(QgsTask):
-    def __init__(self, description, urls, dlcount, products, dlpath, path, nexttask):
+    def __init__(self, description, urls, dlcount, products, dlpath, path):
         super().__init__(description, QgsTask.CanCancel)
         self.all_urls = urls
         self.total_download_count = dlcount
         self.products = products
         self.data_download_dir = dlpath
         self.gpkg_path = path
-        self.next_task = nexttask
 
     def run(self):
         for dlIndex in range(0, self.total_download_count):
@@ -68,16 +68,10 @@ class CreateGeoPackageTask(QgsTask):
                     QgsMessageLog.logMessage("cannot add the data type " + data_type + ", listed_file_name: " + listed_file_name, 'NLSgpkgloader', 0)
         return True
 
-    def finished(self, result):
-        if result:
-            QgsApplication.taskManager().addTask(self.next_task)
-
-
 class DissolveFeaturesTask(QgsTask):
-    def __init__(self, description, path, nexttask):
+    def __init__(self, description, path):
         super().__init__(description, QgsTask.CanCancel)
         self.gpkg_path = path
-        self.next_task = nexttask
 
     def run(self):
         conn = ogr.Open(self.gpkg_path)
@@ -101,16 +95,11 @@ class DissolveFeaturesTask(QgsTask):
             self.setProgress(percentage)
         return True
 
-    def finished(self, result):
-        if result:
-            QgsApplication.taskManager().addTask(self.next_task)
-
 class ClipLayersTask(QgsTask):
-    def __init__(self, description, selected_geoms, path, nexttask):
+    def __init__(self, description, selected_geoms, path):
         super().__init__(description, QgsTask.CanCancel)
         self.selected_geoms = selected_geoms
         self.gpkg_path = path
-        self.next_task = nexttask
 
     def run(self):
         combinedGeomLayer = QgsVectorLayer("MultiPolygon?crs=EPSG:3067", "clipLayer", "memory")
@@ -157,26 +146,34 @@ class ClipLayersTask(QgsTask):
             self.setProgress(percentage)
         return True
 
-    def finished(self, result):
-        if result:
-            QgsApplication.taskManager().addTask(self.next_task)
-
-class FinishTask(QgsTask):
-    def __init__(self, description, path, instance, add_data):
+class CleanUpTask(QgsTask):
+    def __init__(self, description, selfpath, gpkgpath):
         super().__init__(description, QgsTask.CanCancel)
-        self.instance = instance
-        self.addDownloadedDataAsLayer = add_data
+        self.path = selfpath
+        self.gpkg_path = gpkgpath
 
     def run(self):
-        if self.addDownloadedDataAsLayer:
-            conn = ogr.Open(self.gpkg_path)
-            for i in conn:
-                if i.GetName() in MTK_STYLED_LAYERS.values() or i.GetName()[3:] in MTK_PRODUCT_NAMES:
-                    self.instance.addMapLayer(QgsVectorLayer(self.gpkg_path + "|layername=" + i.GetName(), i.GetName(), "ogr"))
-            return True
-
-    def finished(self, result):
-        self.iface.messageBar().pushMessage(self.tr(u'GeoPackage creation finished'), \
-            self.tr(u'NLS data download finished. Data located under ') + \
-            self.gpkg_path, level=3)
+        conn = sqlite3.connect(self.gpkg_path)
+        cur = conn.cursor()
+        cur.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+        result = cur.fetchall()
+        total_tables = len(result)
+        i = 0
+        for table in result:
+            if table[0][:2] == 'd_' or table[0] in MTK_PRODUCT_NAMES:
+                cur.execute("DROP TABLE " + table[0])
+                cur.execute("DROP TABLE IF EXISTS rtree_" + table[0])
+            i += 1
+            percentage = i / float(total_tables) * 100.0
+            self.setProgress(percentage)
+        try:
+            with open(os.path.join(self.path, 'data/layer_styles.sql')) as stylefile:
+                cur.executescript(stylefile.read())
+        except FileNotFoundError:
+            self.iface.messageBar().pushMessage("Error", "Failed to load style table from data/layer_styles.sql", level=2, duration=5)
+            conn.commit()
+            conn.close()
+            return False
+        conn.commit()
+        conn.close()
         return True
