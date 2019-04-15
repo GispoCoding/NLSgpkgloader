@@ -619,13 +619,13 @@ class NLSGeoPackageLoader:
         '''Creates a GeoPackage from the downloaded MTK data'''
         self.progress_dialog.progressBar.reset()
         self.progress_dialog.label.setText('Writing layers to GeoPackage...')
-        writeTask = CreateGeoPackageTask('Write GML to GPKG', self.all_urls, self.total_download_count, self.selected_mtk_product_types, self.data_download_dir, self.gpkg_path)
-        dissolveTask = DissolveFeaturesTask("Dissolve features", self.gpkg_path)
-        clipTask = ClipLayersTask("Clip layers", self.selected_geoms, self.gpkg_path)
+        finishTask = FinishTask("Finish processing", self.gpkg_path, self.instance, self.addDownloadedDataAsLayer)
+        clipTask = ClipLayersTask("Clip layers", self.selected_geoms, self.gpkg_path, finishTask)
+        dissolveTask = DissolveFeaturesTask("Dissolve features", self.gpkg_path, clipTask)
+        writeTask = CreateGeoPackageTask('Write GML to GPKG', self.all_urls, self.total_download_count, self.selected_mtk_product_types, self.data_download_dir, self.gpkg_path, dissolveTask)
         writeTask.progressChanged.connect(lambda: self.progress_dialog.progressBar.setValue(writeTask.progress()))
         writeTask.taskCompleted.connect(lambda: QgsApplication.taskManager().addTask(dissolveTask))
         dissolveTask.taskCompleted.connect(lambda: QgsApplication.taskManager().addTask(clipTask))
-
 
         QgsApplication.taskManager().addTask(writeTask)
         # self.dissolveFeatures()
