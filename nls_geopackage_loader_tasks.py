@@ -6,13 +6,14 @@ from qgis.core import (QgsApplication, QgsTask, QgsMessageLog, QgsVectorLayer, Q
 from .nls_geopackage_loader_mtk_productdata import MTK_PRODUCT_NAMES, MTK_STYLED_LAYERS
 
 class CreateGeoPackageTask(QgsTask):
-    def __init__(self, description, urls, dlcount, products, dlpath, path):
+    def __init__(self, description, urls, dlcount, products, dlpath, path, nexttask):
         super().__init__(description, QgsTask.CanCancel)
         self.all_urls = urls
         self.total_download_count = dlcount
         self.products = products
         self.data_download_dir = dlpath
         self.gpkg_path = path
+        self.next_task = nexttask
 
     def run(self):
         for dlIndex in range(0, self.total_download_count):
@@ -67,11 +68,16 @@ class CreateGeoPackageTask(QgsTask):
                     QgsMessageLog.logMessage("cannot add the data type " + data_type + ", listed_file_name: " + listed_file_name, 'NLSgpkgloader', 0)
         return True
 
+    def finished(self, result):
+        if result:
+            QgsApplication.taskManager().addTask(self.next_task)
+
 
 class DissolveFeaturesTask(QgsTask):
-    def __init__(self, description, path):
+    def __init__(self, description, path, nexttask):
         super().__init__(description, QgsTask.CanCancel)
         self.gpkg_path = path
+        self.next_task = nexttask
 
     def run(self):
         conn = ogr.Open(self.gpkg_path)
@@ -95,11 +101,16 @@ class DissolveFeaturesTask(QgsTask):
             self.setProgress(percentage)
         return True
 
+    def finished(self, result):
+        if result:
+            QgsApplication.taskManager().addTask(self.next_task)
+
 class ClipLayersTask(QgsTask):
-    def __init__(self, description, selected_geoms, path):
+    def __init__(self, description, selected_geoms, path, nexttask):
         super().__init__(description, QgsTask.CanCancel)
         self.selected_geoms = selected_geoms
         self.gpkg_path = path
+        self.next_task = nexttask
 
     def run(self):
         combinedGeomLayer = QgsVectorLayer("MultiPolygon?crs=EPSG:3067", "clipLayer", "memory")
@@ -144,4 +155,28 @@ class ClipLayersTask(QgsTask):
             processing.run("native:clip", params)
             percentage = i / float(total_tables) * 100.0
             self.setProgress(percentage)
+        return True
+
+    def finished(self, result):
+        if result:
+            QgsApplication.taskManager().addTask(self.next_task)
+
+class FinishTask(QgsTask):
+    def __init__(self, description, path, instance, add_data):
+        super().__init__(description, QgsTask.CanCancel)
+        self.instance = instance
+        self.addDownloadedDataAsLayer = add_data
+
+    def run(self):
+        if self.addDownloadedDataAsLayer:
+            conn = ogr.Open(self.gpkg_path)
+            for i in conn:
+                if i.GetName() in MTK_STYLED_LAYERS.values() or i.GetName()[3:] in MTK_PRODUCT_NAMES:
+                    self.instance.addMapLayer(QgsVectorLayer(self.gpkg_path + "|layername=" + i.GetName(), i.GetName(), "ogr"))
+            return True
+
+    def finished(self, result):
+        self.iface.messageBar().pushMessage(self.tr(u'GeoPackage creation finished'), \
+            self.tr(u'NLS data download finished. Data located under ') + \
+            self.gpkg_path, level=3)
         return True
