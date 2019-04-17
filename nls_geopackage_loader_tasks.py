@@ -1,9 +1,10 @@
 import os
-import processing
+import processing # pylint: disable=import-error
 import sqlite3
 from osgeo import ogr
 
-from qgis.core import (QgsApplication, QgsTask, QgsMessageLog, QgsVectorLayer, QgsVectorFileWriter, QgsFeature)
+from qgis.core import (QgsApplication, QgsTask, QgsMessageLog, QgsVectorLayer,
+QgsVectorFileWriter, QgsFeature, QgsMessageLog)
 from .nls_geopackage_loader_mtk_productdata import MTK_PRODUCT_NAMES, MTK_STYLED_LAYERS
 
 class CreateGeoPackageTask(QgsTask):
@@ -36,6 +37,8 @@ class CreateGeoPackageTask(QgsTask):
                     layer_count = data_source.GetLayerCount()
                     mtk_layer_count = 0 # Used for breaking from the for loop when all MTK layers chosen by the user have been added
                     for i in range(layer_count):
+                        if self.isCanceled():
+                            return False
                         layer = data_source.GetLayerByIndex(i)
                         layer_name = layer.GetName()
                         if layer_name in self.products:
@@ -68,6 +71,10 @@ class CreateGeoPackageTask(QgsTask):
                     QgsMessageLog.logMessage("cannot add the data type " + data_type + ", listed_file_name: " + listed_file_name, 'NLSgpkgloader', 0)
         return True
 
+    def finished(self, result):
+        if not result:
+            QgsMessageLog.logMessage('Writing GML to GPKG: task canceled', 'NLSgpkgloader', 1)
+
 class DissolveFeaturesTask(QgsTask):
     def __init__(self, description, path):
         super().__init__(description, QgsTask.CanCancel)
@@ -93,7 +100,13 @@ class DissolveFeaturesTask(QgsTask):
             processing.run("native:dissolve", params)
             percentage = i / float(total_tables) * 100.0
             self.setProgress(percentage)
+            if self.isCanceled():
+                return False
         return True
+
+    def finished(self, result):
+        if not result:
+            QgsMessageLog.logMessage('Writing GML to GPKG: task canceled', 'NLSgpkgloader', 1)
 
 class ClipLayersTask(QgsTask):
     def __init__(self, description, selected_geoms, path):
@@ -130,6 +143,8 @@ class ClipLayersTask(QgsTask):
             if table_name[2:] not in MTK_PRODUCT_NAMES:
                 percentage = i / float(total_tables) * 100.0
                 self.setProgress(percentage)
+                if self.isCanceled():
+                    return False
                 continue
             layer_name = table_name[2:]
             if layer_name in MTK_STYLED_LAYERS.keys():
@@ -144,7 +159,13 @@ class ClipLayersTask(QgsTask):
             processing.run("native:clip", params)
             percentage = i / float(total_tables) * 100.0
             self.setProgress(percentage)
+            if self.isCanceled():
+                return False
         return True
+
+    def finished(self, result):
+        if not result:
+            QgsMessageLog.logMessage('Writing GML to GPKG: task canceled', 'NLSgpkgloader', 1)
 
 class CleanUpTask(QgsTask):
     def __init__(self, description, selfpath, gpkgpath):
@@ -166,6 +187,8 @@ class CleanUpTask(QgsTask):
             i += 1
             percentage = i / float(total_tables) * 100.0
             self.setProgress(percentage)
+            if self.isCanceled():
+                return False
         try:
             with open(os.path.join(self.path, 'data/layer_styles.sql')) as stylefile:
                 cur.executescript(stylefile.read())
@@ -177,3 +200,7 @@ class CleanUpTask(QgsTask):
         conn.commit()
         conn.close()
         return True
+
+    def finished(self, result):
+        if not result:
+            QgsMessageLog.logMessage('Writing GML to GPKG: task canceled', 'NLSgpkgloader', 1)
