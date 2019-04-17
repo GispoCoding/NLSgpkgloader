@@ -30,7 +30,7 @@ import sqlite3
 
 from qgis.core import (QgsVectorLayer, QgsMessageLog, QgsProject, QgsFeatureRequest,
 QgsVectorFileWriter, QgsProcessingFeedback, QgsCoordinateReferenceSystem,
-QgsProcessingFeedback, QgsFeature)
+QgsProcessingFeedback, QgsFeature, QgsLayerTreeGroup)
 from qgis.gui import QgsBusyIndicatorDialog, QgsFileWidget
 from osgeo import ogr
 
@@ -343,7 +343,7 @@ class NLSGeoPackageLoader:
             found_utm25_layer = found_utm50_layer = found_utm100_layer = \
                 found_utm200_layer = found_seatiles_layer = found_municipality_layer = False
 
-        current_layers = self.instance.layerTreeRoot().children()
+        current_layers = self.getLayers(self.instance.layerTreeRoot())
 
         for current_layer in current_layers:
             if current_layer.layer() == self.utm5_layer:
@@ -473,7 +473,9 @@ class NLSGeoPackageLoader:
             self.seatile_layer = False
 
         self.instance = QgsProject.instance()
-        for lnode in self.instance.layerTreeRoot().children():
+        current_layers = self.getLayers(self.instance.layerTreeRoot())
+
+        for lnode in current_layers:
             if lnode.layer().dataProvider().dataSourceUri() == self.municipality_layer.dataProvider().dataSourceUri():
                 self.municipality_layer = lnode.layer()
             if lnode.layer().dataProvider().dataSourceUri() == self.seatile_layer.dataProvider().dataSourceUri():
@@ -494,6 +496,15 @@ class NLSGeoPackageLoader:
                 self.utm200_layer = lnode.layer()
 
         return True
+
+    def getLayers(self, root):
+        layers = []
+        for node in root.children():
+            if isinstance(node, QgsLayerTreeGroup):
+                layers.extend(self.getLayers(node))
+            else:
+                layers.append(node)
+        return layers
 
     def getIntersectingFeatures(self, features, layer, selected_mun_names=None):
         if selected_mun_names:
