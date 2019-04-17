@@ -282,6 +282,11 @@ class NLSGeoPackageLoader:
             for feature in self.utm25lr_layer.selectedFeatures():
                 self.utm25lr_features.append(feature)
                 self.selected_geoms.append(feature.geometry())
+            grids = [self.utm5_layer, self.utm10_layer, self.utm25_layer, self.utm50_layer, self.utm100_layer, self.utm200_layer]
+            for grid in grids:
+                for feature in grid.selectedFeatures():
+                    self.selected_geoms.append(feature.geometry())
+
 
             selected_mun_names = []
             for item in self.municipalities_dialog.municipalityListWidget.selectedItems():
@@ -311,6 +316,8 @@ class NLSGeoPackageLoader:
 
                 self.getIntersectingFeatures(self.municipality_layer.selectedFeatures(), self.utm25lr_layer, selected_mun_names)
                 self.getIntersectingFeatures(self.seatile_layer.selectedFeatures(), self.utm25lr_layer)
+                for grid in grids:
+                    self.getIntersectingFeatures(grid.selectedFeatures(), self.utm25lr_layer)
 
                 self.downloadData(product_types)
 
