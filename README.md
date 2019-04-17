@@ -4,7 +4,7 @@ This plugin lets users download NLS.fi open MTK data (CC-BY 4.0) using QGIS3. It
 
 The plugin is still in beta-development. Please report issues to mikael@gispo.fi.
 
-**Developed by [Gispo Inc.](https://www.gispo.fi) in collaboration with [Navielektro](https://www.navielektro.fi).**
+**Developed by [Gispo Ltd.](https://www.gispo.fi) in collaboration with [Navielektro](https://www.navielektro.fi).**
 
 ## Licences
 
