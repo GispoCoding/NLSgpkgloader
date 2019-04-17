@@ -314,6 +314,12 @@ class NLSGeoPackageLoader:
 
                 self.downloadData(product_types)
 
+            else:
+                self.progress_dialog.hide()
+                QMessageBox.critical(self.iface.mainWindow(), self.tr(u'Invalid selection'), self.tr(u'Found nothing to download!'))
+                return
+
+
     def toggleLayers(self):
         '''Load municipality and map tile layers'''
         self.addDownloadedDataAsLayer = self.municipalities_dialog.loadLayers.isChecked()
