@@ -44,7 +44,7 @@ PLUGINNAME = nls_geopackage_loader
 
 PY_FILES = \
 	__init__.py \
-	nls_geopackage_loader.py nls_geopackage_loader_dialog.py nls_geopackage_loader_mtk_productdata.py
+	nls_geopackage_loader.py nls_geopackage_loader_dialog.py nls_geopackage_loader_mtk_productdata.py nls_geopackage_loader_tasks.py
 
 UI_FILES = nls_geopackage_loader_dialog_base.ui nls_geopackage_loader_dialog_municipality_selection.ui nls_geopackage_loader_dialog_NLS_user_key.ui nls_geopackage_loader_dialog_progress.ui
 
