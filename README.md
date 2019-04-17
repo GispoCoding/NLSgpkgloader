@@ -4,6 +4,12 @@ This plugin lets users download NLS.fi open MTK data (CC-BY 4.0) using QGIS3. It
 
 The plugin is still in beta-development. Please report issues to mikael@gispo.fi.
 
+**Developed by [Gispo Inc.](https://www.gispo.fi) in collaboration with [Navielektro](https://www.navielektro.fi).**
+
+## Licences
+
+This plugin utilizes data licensed by Traficom and National Land Survey of Finland. **Please read [data/LICENCE.txt](data/LICENCE.txt) for more information.**
+
 ## Installation instructions
 
 ### Dependencies
@@ -38,6 +44,6 @@ Using the plugin is fairly straightforward:
 2. Choose which layers to write to the GeoPackage. Note that some layers are preselected.
 3. Select which areas to download either by picking municipalities from the list or selecting features from the map.
 4. Enter a filename and whether to load the finished GeoPackage layers into QGIS.
-5, Click OK and wait for processing to finish.
+5. Click OK and wait for processing to finish.
 
 More documentation can soon be found in the Wiki.
