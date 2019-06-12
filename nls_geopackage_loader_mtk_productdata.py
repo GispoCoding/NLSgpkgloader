@@ -23,7 +23,7 @@ MTK_PRODUCT_NAMES = [
     "UlkoJaSisasaaristonRaja", "UrheiluJaVirkistysalue", "ValtakunnanRajapyykki", "Varastoalue", "Vedenottamo",
     "VedenpinnanKorkeusluku", "Vesiasteikko", "Vesikivi", "Vesikivikko", "Vesikulkuvayla",
     "VesikulkuvaylanKulkusuunta", "VesikulkuvaylanTeksti", "Vesikuoppa", "Vesitorni", "Viettoviiva", "Virtausnuoli",
-    "VirtavesiKapea", "VirtavesiAlue"
+    "VirtavesiKapea", "VirtavesiAlue", "Jarvi"
 ]
 
 MTK_STYLED_LAYERS = {
