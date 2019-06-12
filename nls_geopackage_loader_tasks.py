@@ -30,6 +30,10 @@ class CreateGeoPackageTask(QgsTask):
             percentage = dlIndex / float(self.total_download_count) * 100.0
             self.setProgress(percentage)
 
+            if not os.path.exists(dir_path):
+                QgsMessageLog.logMessage("Skipping directory: " + dir_path, 'NLSgpkgloader', 1)
+                continue
+
             for listed_file_name in os.listdir(dir_path):
                 if data_type == "gml" and listed_file_name.endswith(".xml"):
                     driver = ogr.GetDriverByName('GML')
