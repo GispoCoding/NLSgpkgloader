@@ -1,10 +1,11 @@
 import os
 import processing # pylint: disable=import-error
+from processing.tools import dataobjects # pylint: disable=import-error
 import sqlite3
 from osgeo import ogr
 
 from qgis.core import (QgsApplication, QgsTask, QgsMessageLog, QgsVectorLayer,
-QgsVectorFileWriter, QgsFeature, QgsMessageLog)
+QgsVectorFileWriter, QgsFeature, QgsMessageLog, QgsFeatureRequest)
 from .nls_geopackage_loader_mtk_productdata import MTK_PRODUCT_NAMES, MTK_STYLED_LAYERS
 
 class CreateGeoPackageTask(QgsTask):
@@ -101,7 +102,9 @@ class DissolveFeaturesTask(QgsTask):
                 'FIELD': ['gid'],
                 'OUTPUT': "ogr:dbname='" + self.gpkg_path + '\' table="' + layer_name + '" (geom) sql='
             }
-            processing.run("native:dissolve", params)
+            context = dataobjects.createContext()
+            context.setInvalidGeometryCheck(QgsFeatureRequest.GeometrySkipInvalid)
+            processing.run("native:dissolve", params, context=context)
             percentage = i / float(total_tables) * 100.0
             self.setProgress(percentage)
             if self.isCanceled():
