@@ -198,6 +198,8 @@ class CleanUpTask(QgsTask):
             conn.close()
             return False
         conn.commit()
+        cur.execute("VACUUM")
+        conn.commit()
         conn.close()
         return True
 
