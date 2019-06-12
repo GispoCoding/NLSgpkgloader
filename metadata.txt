@@ -10,7 +10,7 @@
 name=NLS GeoPackage Downloader
 qgisMinimumVersion=3.0
 description=This plugin downloads MTK data from NLS and saves it to a GeoPackage.
-version=0.1
+version=0.2
 author=Gispo Oy
 email=mikael@gispo.fi
 
