@@ -80,7 +80,8 @@ MTK_STYLED_LAYERS = {
     "Hietikko": "51_Hietikko",
     "Jarvi": "52_Jarvi",
     "Allas": "53_Allas",
-    "Meri": "54_Meri"
+    "VirtavesiAlue": "54_VirtavesiAlue",
+    "Meri": "55_Meri"
 }
 
 MTK_PRESELECTED_PRODUCTS = list(MTK_STYLED_LAYERS.keys())
