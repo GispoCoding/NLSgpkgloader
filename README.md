@@ -29,12 +29,11 @@ Python-requests may be replaced by the QGIS built-in [QgsFileDownloader](https:/
 
 ### QGIS Plugin
 
-1. Download the repository as a zip using the Clone or download button in GitHub.
+1. Download the repository as a zip using the Clone or download button in GitHub (above).
 
-2. Extract the downloaded archive to your QGIS Plugins folder. You can open this folder from the menu in QGIS3, under Settings - User profiles - Open Active Profile Folder.
+2. Launch QGIS and the plugins menu by selecting Plugins - Manage and Install Plugins from the top menu.
 
-3. Restart QGIS and open the plugin from Plugins - NLS GeoPackage Downloader.
-
+3. Select the Install from ZIP tab, browse to the zip file you just downloaded, and click Install Plugin!
 
 ## Usage
 
@@ -46,4 +45,4 @@ Using the plugin is fairly straightforward:
 4. Enter a filename and whether to load the finished GeoPackage layers into QGIS.
 5. Click OK and wait for processing to finish.
 
-More documentation can soon be found in the Wiki.
+More documentation, including more detailed installation and usage instructions in Finnish can be found in the [Wiki](https://github.com/GispoCoding/NLSgpkgloader/wiki).
