@@ -225,7 +225,8 @@ class NLSGeoPackageLoader:
         self.showSeatilesAsLayer = QSettings().value("/NLSgpkgloader/showSeatilesAsLayer", False, type=bool)
 
         if self.nls_user_key == "":
-            self.showSettingsDialog()
+            res = self.showSettingsDialog()
+            if not res: return
         if not self.loadLayers():
             QMessageBox.critical(self.iface.mainWindow(), self.tr(u'Failed to load data'), self.tr(u'Check that necessary files exist in data folder'))
             return
@@ -687,16 +688,18 @@ class NLSGeoPackageLoader:
             if self.nls_user_key == "":
                 # cannot work without the key, so user needs to be notified
                 QMessageBox.critical(self.iface.mainWindow(), self.tr(u'User-key is needed'), self.tr(u'Data cannot be downloaded without the NLS key'))
-                return
+                return False
             self.data_download_dir = self.nls_user_key_dialog.dataLocationQgsFileWidget.filePath()
 
             QSettings().setValue("/NLSgpkgloader/userKey", self.nls_user_key)
             QSettings().setValue("/NLSgpkgloader/dataDownloadDir", self.data_download_dir)
+            return True
+
         else:
-            if self.nls_user_key == "":
-                # cannot work without the key, so user needs to be notified
-                QMessageBox.critical(self.iface.mainWindow(), self.tr(u'User-key is needed'), self.tr(u'Data cannot be downloaded without the NLS key'))
-                return
+            # cannot work without the key, so user needs to be notified
+            QMessageBox.critical(self.iface.mainWindow(), self.tr(u'User-key is needed'),
+                self.tr(u'Data cannot be downloaded without the NLS key'))
+            return False
 
     def createDownloadURLS(self, product_key, product_title):
         urls = []
