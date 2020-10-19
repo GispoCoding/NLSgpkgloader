@@ -12,23 +12,6 @@ This plugin utilizes data licensed by Traficom and National Land Survey of Finla
 
 ## Installation instructions
 
-### Dependencies
-
-Before installing the plugin, make sure to install the Python [requests-library](http://docs.python-requests.org/). This can be done by executing the command:
-
-```pip install requests```
-
-On Windows QGIS installations, installing the requests library can be done using the OSGeo4W Shell. Open the shell as an administrator and run commands:
-
-```
-py3_env
-pip install requests
-```
-
-Python-requests may be replaced by the QGIS built-in [QgsFileDownloader](https://qgis.org/pyqgis/3.2/core/File/QgsFileDownloader.html) class in a future version of the plugin.
-
-### QGIS Plugin
-
 1. Download the repository as a zip using the Clone or download button in GitHub (above).
 
 2. Launch QGIS and the plugins menu by selecting Plugins - Manage and Install Plugins from the top menu.
