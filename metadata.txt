@@ -1,17 +1,18 @@
 # This file contains metadata for your plugin. Since
 # version 2.0 of QGIS this is the proper way to supply
 # information about a plugin. The old method of
-# embedding metadata in __init__.py will
+# embedding metadata in __init__.py
 # is no longer supported since version 2.0.
 
-# This file should be included when you package your plugin.# Mandatory items:
+# This file should be included when you package your plugin.
 
+# Mandatory items:
 [general]
 name=NLS GeoPackage Downloader
 qgisMinimumVersion=3.0
 description=This plugin downloads MTK data from NLS and saves it to a GeoPackage.
 version=0.2.1
-author=Gispo Oy
+author=Gispo Ltd.
 email=mikael@gispo.fi
 
 about=Download data from the Finnish NLS Atom feed and create a GeoPackage with built-in styles.
@@ -32,7 +33,7 @@ homepage=https://www.gispo.fi/
 category=Plugins
 icon=icon.png
 # experimental flag
-experimental=True
+experimental=False
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
