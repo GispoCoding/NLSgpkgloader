@@ -22,9 +22,10 @@ This plugin utilizes data licensed by Traficom and National Land Survey of Finla
 
 Using the plugin is fairly straightforward:
 
-1. Click the NLS plugin icon. Download Data window opens. Click Settings button in the left bottom corner.
-2. Another pop-up window opens. In the Settings window, enter a valid identification key (received via email from NLS)
+1. Click the NLS plugin icon. Settings window open. Enter a valid identification key (received via email from NLS)
    and set the save directory.
+2. Another pop-up window, Download Data, opens. If the Settings window did not open as described in step 1, you can
+   find it by pushing Settings button in the left bottom corner of the Download Data window.
 3. Select which areas to download either by picking municipalities / UTM grids / Sea grids from the list or by selecting
    features from the map.
 4. Choose which layers to write to the GeoPackage. Note that some layers are preselected.
