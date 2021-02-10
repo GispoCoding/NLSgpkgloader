@@ -29,7 +29,7 @@ repository=https://github.com/GispoCoding/NLSgpkgloader
 # Tags are comma separated with spaces allowed
 tags=python
 
-homepage=https://www.gispo.fi/
+homepage=https://github.com/GispoCoding/NLSgpkgloader
 category=Plugins
 icon=icon.png
 # experimental flag
