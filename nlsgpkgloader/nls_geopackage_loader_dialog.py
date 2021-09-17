@@ -22,13 +22,13 @@
 
 import os
 
+from PyQt5 import QtWidgets, uic
 
-from PyQt5 import uic
-from PyQt5 import QtWidgets
-
-# This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'nls_geopackage_loader_dialog_base.ui'))
+# This loads your .ui file so that PyQt can populate your plugin with the
+# elements from Qt Designer
+FORM_CLASS, _ = uic.loadUiType(
+    os.path.join(os.path.dirname(__file__), "nls_geopackage_loader_dialog_base.ui")
+)
 
 
 class NLSGeoPackageLoaderDialog(QtWidgets.QDialog, FORM_CLASS):

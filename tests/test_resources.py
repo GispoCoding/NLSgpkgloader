@@ -8,14 +8,13 @@
 
 """
 
-__author__ = 'mikael@gispo.fi'
-__date__ = '2019-03-02'
-__copyright__ = 'Copyright 2019, Gispo Oy'
+__author__ = "mikael@gispo.fi"
+__date__ = "2019-03-02"
+__copyright__ = "Copyright 2019, Gispo Oy"
 
 import unittest
 
 from PyQt5.QtGui import QIcon
-
 
 
 class NLSGeoPackageLoaderDialogTest(unittest.TestCase):
@@ -31,14 +30,12 @@ class NLSGeoPackageLoaderDialogTest(unittest.TestCase):
 
     def test_icon_png(self):
         """Test we can click OK."""
-        path = ':/plugins/NLSGeoPackageLoader/icon.png'
+        path = ":/plugins/NLSGeoPackageLoader/icon.png"
         icon = QIcon(path)
         self.assertFalse(icon.isNull())
+
 
 if __name__ == "__main__":
     suite = unittest.makeSuite(NLSGeoPackageLoaderResourcesTest)
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
-
-
-

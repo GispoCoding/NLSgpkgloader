@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-
 #  Gispo Ltd., hereby disclaims all copyright interest in the program NLSgpkgloadert
 #  Copyright (C) 2018-2020 Gispo Ltd (https://www.gispo.fi/).
 #
@@ -22,7 +21,6 @@
 #  along with NLSgpkgloadert.  If not, see <https://www.gnu.org/licenses/>.
 
 
-
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name
     """Load NLSGeoPackageLoader class from file NLSGeoPackageLoader.
@@ -32,4 +30,5 @@ def classFactory(iface):  # pylint: disable=invalid-name
     """
     #
     from .nls_geopackage_loader import NLSGeoPackageLoader
+
     return NLSGeoPackageLoader(iface)
