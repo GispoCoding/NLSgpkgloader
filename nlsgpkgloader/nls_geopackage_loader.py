@@ -29,10 +29,10 @@ from zipfile import BadZipFile
 import processing
 import requests
 from osgeo import ogr
-from PyQt5 import uic
-from PyQt5.QtCore import QCoreApplication, QSettings, QTimer, QTranslator, qVersion
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QListWidgetItem, QMessageBox
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTimer, QTranslator, qVersion
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QAction, QListWidgetItem, QMessageBox
 from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsFeature,

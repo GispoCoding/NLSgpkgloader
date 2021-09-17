@@ -14,8 +14,7 @@ __copyright__ = "Copyright 2019, Gispo Oy"
 
 import unittest
 
-from PyQt5.QtWidgets import QDialog, QDialogButtonBox
-from utilities import get_qgis_app
+from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox
 
 from nlsgpkgloader.nls_geopackage_loader_dialog import NLSGeoPackageLoaderDialog
 

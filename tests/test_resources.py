@@ -14,7 +14,7 @@ __copyright__ = "Copyright 2019, Gispo Oy"
 
 import unittest
 
-from PyQt5.QtGui import QIcon
+from qgis.PyQt.QtGui import QIcon
 
 
 class NLSGeoPackageLoaderDialogTest(unittest.TestCase):
