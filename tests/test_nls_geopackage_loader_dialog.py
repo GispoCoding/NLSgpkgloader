@@ -16,7 +16,7 @@ import unittest
 
 from PyQt5.QtGui import QDialogButtonBox, QDialog
 
-from nls_geopackage_loader_dialog import NLSGeoPackageLoaderDialog
+from nlsgpkgloader.nls_geopackage_loader_dialog import NLSGeoPackageLoaderDialog
 
 from utilities import get_qgis_app
 QGIS_APP = get_qgis_app()

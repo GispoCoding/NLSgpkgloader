@@ -27,6 +27,7 @@ from qgis.core import (QgsApplication, QgsTask, QgsMessageLog, QgsVectorLayer,
 QgsVectorFileWriter, QgsFeature, QgsMessageLog, QgsFeatureRequest)
 from .nls_geopackage_loader_mtk_productdata import MTK_PRODUCT_NAMES, MTK_STYLED_LAYERS
 
+
 class CreateGeoPackageTask(QgsTask):
     def __init__(self, description, urls, dlcount, products, dlpath, path):
         super().__init__(description, QgsTask.CanCancel)
