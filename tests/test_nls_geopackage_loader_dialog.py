@@ -8,17 +8,18 @@
 
 """
 
-__author__ = 'mikael@gispo.fi'
-__date__ = '2019-03-02'
-__copyright__ = 'Copyright 2019, Gispo Oy'
+__author__ = "mikael@gispo.fi"
+__date__ = "2019-03-02"
+__copyright__ = "Copyright 2019, Gispo Oy"
 
 import unittest
 
-from PyQt5.QtGui import QDialogButtonBox, QDialog
-
 from nlsgpkgloader.nls_geopackage_loader_dialog import NLSGeoPackageLoaderDialog
+from PyQt5.QtWidgets import QDialog, QDialogButtonBox
 
+from tests.utilities import get_qgis_app
 from utilities import get_qgis_app
+
 QGIS_APP = get_qgis_app()
 
 
@@ -48,8 +49,8 @@ class NLSGeoPackageLoaderDialogTest(unittest.TestCase):
         result = self.dialog.result()
         self.assertEqual(result, QDialog.Rejected)
 
+
 if __name__ == "__main__":
     suite = unittest.makeSuite(NLSGeoPackageLoaderDialogTest)
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
-
