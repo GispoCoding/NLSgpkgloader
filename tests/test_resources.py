@@ -12,30 +12,12 @@ __author__ = "mikael@gispo.fi"
 __date__ = "2019-03-02"
 __copyright__ = "Copyright 2019, Gispo Oy"
 
-import unittest
 
 from qgis.PyQt.QtGui import QIcon
 
 
-class NLSGeoPackageLoaderDialogTest(unittest.TestCase):
-    """Test rerources work."""
-
-    def setUp(self):
-        """Runs before each test."""
-        pass
-
-    def tearDown(self):
-        """Runs after each test."""
-        pass
-
-    def test_icon_png(self):
-        """Test we can click OK."""
-        path = ":/plugins/NLSGeoPackageLoader/icon.png"
-        icon = QIcon(path)
-        self.assertFalse(icon.isNull())
-
-
-if __name__ == "__main__":
-    suite = unittest.makeSuite(NLSGeoPackageLoaderResourcesTest)
-    runner = unittest.TextTestRunner(verbosity=2)
-    runner.run(suite)
+def test_icon_png():
+    """Test we can click OK."""
+    path = ":/plugins/NLSGeoPackageLoader/icon.png"
+    icon = QIcon(path)
+    assert icon is not None

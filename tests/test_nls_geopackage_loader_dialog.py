@@ -12,43 +12,30 @@ __author__ = "mikael@gispo.fi"
 __date__ = "2019-03-02"
 __copyright__ = "Copyright 2019, Gispo Oy"
 
-import unittest
 
+import pytest
 from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox
 
 from nlsgpkgloader.nls_geopackage_loader_dialog import NLSGeoPackageLoaderDialog
 
-QGIS_APP = get_qgis_app()
+
+@pytest.fixture
+def dialog():
+    return NLSGeoPackageLoaderDialog(None)
 
 
-class NLSGeoPackageLoaderDialogTest(unittest.TestCase):
-    """Test dialog works."""
+def test_dialog_ok(dialog):
+    """Test we can click OK."""
 
-    def setUp(self):
-        """Runs before each test."""
-        self.dialog = NLSGeoPackageLoaderDialog(None)
-
-    def tearDown(self):
-        """Runs after each test."""
-        self.dialog = None
-
-    def test_dialog_ok(self):
-        """Test we can click OK."""
-
-        button = self.dialog.button_box.button(QDialogButtonBox.Ok)
-        button.click()
-        result = self.dialog.result()
-        self.assertEqual(result, QDialog.Accepted)
-
-    def test_dialog_cancel(self):
-        """Test we can click cancel."""
-        button = self.dialog.button_box.button(QDialogButtonBox.Cancel)
-        button.click()
-        result = self.dialog.result()
-        self.assertEqual(result, QDialog.Rejected)
+    button = dialog.button_box.button(QDialogButtonBox.Ok)
+    button.click()
+    result = dialog.result()
+    assert result == QDialog.Accepted
 
 
-if __name__ == "__main__":
-    suite = unittest.makeSuite(NLSGeoPackageLoaderDialogTest)
-    runner = unittest.TextTestRunner(verbosity=2)
-    runner.run(suite)
+def test_dialog_cancel(dialog):
+    """Test we can click cancel."""
+    button = dialog.button_box.button(QDialogButtonBox.Cancel)
+    button.click()
+    result = dialog.result()
+    assert result == QDialog.Rejected
