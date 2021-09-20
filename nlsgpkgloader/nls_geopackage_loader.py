@@ -499,7 +499,7 @@ class NLSGeoPackageLoader:
 
     def loadLayers(self):
         self.municipality_layer = QgsVectorLayer(
-            os.path.join(self.path, "data/SuomenKuntajako_2018_10k.shp"),
+            resources_path("data", "SuomenKuntajako_2018_10k.shp"),
             "municipalities",
             "ogr",
         )
@@ -513,7 +513,7 @@ class NLSGeoPackageLoader:
             return False
         self.municipality_layer.setProviderEncoding("ISO-8859-1")
         self.utm5_layer = QgsVectorLayer(
-            os.path.join(self.path, "data/utm5.shp"), "utm5", "ogr"
+            resources_path("data", "utm5.shp"), "utm5", "ogr"
         )
         if not self.utm5_layer.isValid():
             QgsMessageLog.logMessage(
@@ -524,7 +524,7 @@ class NLSGeoPackageLoader:
             )
             self.utm5_layer = False
         self.utm10_layer = QgsVectorLayer(
-            os.path.join(self.path, "data/utm10.shp"), "utm10", "ogr"
+            resources_path("data", "utm10.shp"), "utm10", "ogr"
         )
         if not self.utm10_layer.isValid():
             QgsMessageLog.logMessage(
@@ -535,7 +535,7 @@ class NLSGeoPackageLoader:
             )
             self.utm10_layer = False
         self.utm25lr_layer = QgsVectorLayer(
-            os.path.join(self.path, "data/utm25LR.shp"), "utm25lr", "ogr"
+            resources_path("data", "utm25LR.shp"), "utm25lr", "ogr"
         )
         if not self.utm25lr_layer.isValid():
             QgsMessageLog.logMessage(
@@ -546,7 +546,7 @@ class NLSGeoPackageLoader:
             )
             return False
         self.utm25_layer = QgsVectorLayer(
-            os.path.join(self.path, "data/utm25.shp"), "utm25", "ogr"
+            resources_path("data", "utm25.shp"), "utm25", "ogr"
         )
         if not self.utm25_layer.isValid():
             QgsMessageLog.logMessage(
@@ -557,7 +557,7 @@ class NLSGeoPackageLoader:
             )
             self.utm25_layer = False
         self.utm50_layer = QgsVectorLayer(
-            os.path.join(self.path, "data/utm50.shp"), "utm50", "ogr"
+            resources_path("data", "utm50.shp"), "utm50", "ogr"
         )
         if not self.utm50_layer.isValid():
             QgsMessageLog.logMessage(
@@ -568,7 +568,7 @@ class NLSGeoPackageLoader:
             )
             self.utm50_layer = False
         self.utm100_layer = QgsVectorLayer(
-            os.path.join(self.path, "data/utm100.shp"), "utm100", "ogr"
+            resources_path("data", "utm100.shp"), "utm100", "ogr"
         )
         if not self.utm100_layer.isValid():
             QgsMessageLog.logMessage(
@@ -579,7 +579,7 @@ class NLSGeoPackageLoader:
             )
             self.utm100_layer = False
         self.utm200_layer = QgsVectorLayer(
-            os.path.join(self.path, "data/utm200.shp"), "utm200", "ogr"
+            resources_path("data", "utm200.shp"), "utm200", "ogr"
         )
         if not self.utm200_layer.isValid():
             QgsMessageLog.logMessage(
@@ -592,7 +592,7 @@ class NLSGeoPackageLoader:
 
         expression = '"product_group_id" = 5'
         self.seatile_layer = QgsVectorLayer(
-            os.path.join(self.path, "data/seatiles_3067.gpkg"), "seatiles", "ogr"
+            resources_path("data", "seatiles_3067.gpkg"), "seatiles", "ogr"
         )
         self.seatile_layer.setSubsetString(expression)
         if not self.seatile_layer.isValid():

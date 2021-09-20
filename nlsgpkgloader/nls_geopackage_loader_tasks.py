@@ -24,7 +24,6 @@ import processing  # pylint: disable=import-error
 from osgeo import ogr
 from processing.tools import dataobjects  # pylint: disable=import-error
 from qgis.core import (
-    QgsApplication,
     QgsFeature,
     QgsFeatureRequest,
     QgsMessageLog,
@@ -32,6 +31,8 @@ from qgis.core import (
     QgsVectorFileWriter,
     QgsVectorLayer,
 )
+
+from nlsgpkgloader.qgis_plugin_tools.tools.resources import resources_path
 
 from .nls_geopackage_loader_mtk_productdata import MTK_PRODUCT_NAMES, MTK_STYLED_LAYERS
 
@@ -286,7 +287,7 @@ class CleanUpTask(QgsTask):
             if self.isCanceled():
                 return False
         try:
-            with open(os.path.join(self.path, "data/layer_styles.sql")) as stylefile:
+            with open(resources_path("data", "layer_styles.sql")) as stylefile:
                 cur.executescript(stylefile.read())
         except FileNotFoundError:
             self.iface.messageBar().pushMessage(

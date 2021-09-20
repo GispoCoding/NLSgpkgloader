@@ -15,7 +15,7 @@ from qgis_plugin_tools.infrastructure.plugin_maker import PluginMaker
 py_files = list(glob.glob("**/*.py", recursive=True))
 ui_files = list(glob.glob("**/*.ui", recursive=True))
 resources = list(glob.glob("**/*.qrc", recursive=True))
-extra_dirs = ["data"]
+extra_dirs = ["resources"]
 locales = ["fi"]
 profile = "dev"
 compiled_resources: List[str] = []
