@@ -1,0 +1,19 @@
+[tool.isort]
+# Black compatible values for isort https://black.readthedocs.io/en/stable/compatible_configs.html#isort
+profile = "black"
+extend_skip = ["env"]
+
+[tool.black]
+extend-exclude = '''
+/(
+  | nlsgpkgloader/qgis_plugin_tools
+  | nlsgpkgloader/resources.py
+)/
+'''
+
+[tool.pytest.ini_options]
+addopts = "-v"
+testpaths = "tests"
+
+[tool.coverage.report]
+omit = "nlsgpkgloader/qgis_plugin_tools/*"

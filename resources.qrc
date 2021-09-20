@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/plugins/nls_geopackage_loader" >
-        <file>icon.png</file>
-    </qresource>
-</RCC>
