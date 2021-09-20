@@ -188,9 +188,8 @@ class NLSGeoPackageLoader:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
-        icon_path = ":/plugins/nls_geopackage_loader/icon.png"
         self.add_action(
-            icon_path,
+            resources_path("icons", "icon.png"),
             text=self.tr(u"NLS GeoPackage Downloader"),
             callback=self.run,
             parent=self.iface.mainWindow(),
