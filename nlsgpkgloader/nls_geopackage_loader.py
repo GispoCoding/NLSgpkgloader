@@ -32,10 +32,11 @@ from qgis.core import (
     QgsLayerTreeGroup,
     QgsMessageLog,
     QgsProject,
+    QgsSettings,
     QgsVectorLayer,
 )
 from qgis.gui import QgsFileWidget
-from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTimer, QTranslator, qVersion
+from qgis.PyQt.QtCore import QCoreApplication, QTimer, QTranslator, qVersion
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QListWidgetItem, QMessageBox
 from qgis.utils import iface
@@ -55,30 +56,28 @@ from nlsgpkgloader.nls_geopackage_loader_tasks import (
     DissolveFeaturesTask,
 )
 from nlsgpkgloader.qgis_plugin_tools.tools.resources import resources_path
+from nlsgpkgloader.qgis_plugin_tools.tools.settings import get_setting, set_setting
 from nlsgpkgloader.ui import (
     NLSGeoPackageLoaderMunicipalitySelectionDialog,
     NLSGeoPackageLoaderProgressDialog,
     NLSGeoPackageLoaderUserKeyDialog,
 )
 
+OLD_SETTINGS_GROUP_NAME = "NLSgpkgloader"
+
 
 class NLSGeoPackageLoader:
     """QGIS Plugin Implementation."""
 
     def __init__(self):
-        """Constructor.
+        """Constructor"""
 
-        :param iface: An interface instance that will be passed to this class
-            which provides the hook by which you can manipulate the QGIS
-            application at run time.
-        :type iface: QgsInterface
-        """
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
-        locale = QSettings().value("locale/userLocale")[0:2]
+        locale = get_setting("locale/userLocale", internal=False)[0:2]
         locale_path = resources_path("i18n", "NLSGeoPackageLoader_{}.qm".format(locale))
 
         if os.path.exists(locale_path):
@@ -101,9 +100,12 @@ class NLSGeoPackageLoader:
 
         self.nls_user_key_dialog = NLSGeoPackageLoaderUserKeyDialog()
 
-        self.first_run = QSettings().value("/NLSgpkgloader/first_run", True, type=bool)
+        if OLD_SETTINGS_GROUP_NAME in QgsSettings().childGroups():
+            self._migrate_settings()
+
+        self.first_run = get_setting("first_run", True, bool)
         if self.first_run:
-            QSettings().setValue("/NLSgpkgloader/first_run", False)
+            set_setting("first_run", False)
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -206,6 +208,15 @@ class NLSGeoPackageLoader:
         # will be set False in run()
         self.first_start = True
 
+    @staticmethod
+    def _migrate_settings():
+        settings = QgsSettings()
+        settings.beginGroup(OLD_SETTINGS_GROUP_NAME)
+        for key in settings.allKeys():
+            set_setting(key, settings.value(key))
+        settings.endGroup()
+        settings.remove(OLD_SETTINGS_GROUP_NAME)
+
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
@@ -214,24 +225,21 @@ class NLSGeoPackageLoader:
 
     def run(self):
         """Run method that performs all the real work"""
-        self.nls_user_key = QSettings().value("/NLSgpkgloader/userKey", "", type=str)
-        self.data_download_dir = QSettings().value(
-            "/NLSgpkgloader/dataDownloadDir", "", type=str
+        self.nls_user_key = get_setting("userKey", "", typehint=str)
+
+        self.data_download_dir = get_setting("dataDownloadDir", "", typehint=str)
+        self.fileName = get_setting("defaultFileName", "mtk.gpkg", typehint=str)
+        self.addDownloadedDataAsLayer = get_setting(
+            "addDownloadedDataAsLayer", True, typehint=bool
         )
-        self.fileName = QSettings().value(
-            "/NLSgpkgloader/defaultFileName", "mtk.gpkg", type=str
+        self.showMunicipalitiesAsLayer = get_setting(
+            "showMunicipalitiesAsLayer", True, typehint=bool
         )
-        self.addDownloadedDataAsLayer = QSettings().value(
-            "/NLSgpkgloader/addDownloadedDataAsLayer", True, type=bool
+        self.showUTMGridsAsLayer = get_setting(
+            "showUTMGridsAsLayer", False, typehint=bool
         )
-        self.showMunicipalitiesAsLayer = QSettings().value(
-            "/NLSgpkgloader/showMunicipalitiesAsLayer", True, type=bool
-        )
-        self.showUTMGridsAsLayer = QSettings().value(
-            "/NLSgpkgloader/showUTMGridsAsLayer", False, type=bool
-        )
-        self.showSeatilesAsLayer = QSettings().value(
-            "/NLSgpkgloader/showSeatilesAsLayer", False, type=bool
+        self.showSeatilesAsLayer = get_setting(
+            "showSeatilesAsLayer", False, typehint=bool
         )
 
         if self.nls_user_key == "":
@@ -290,7 +298,7 @@ class NLSGeoPackageLoader:
                 return
             if self.fileName.split(".")[-1].lower() != "gpkg":
                 self.fileName += ".gpkg"
-            QSettings().setValue("/NLSgpkgloader/defaultFileName", self.fileName)
+            set_setting("defaultFileName", self.fileName)
             self.gpkg_path = os.path.join(self.data_download_dir, self.fileName)
             if os.path.isfile(self.gpkg_path):
                 reply = QMessageBox.question(
@@ -398,18 +406,10 @@ class NLSGeoPackageLoader:
         )
         self.showUTMGridsAsLayer = self.municipalities_dialog.loadUtmGrids.isChecked()
         self.showSeatilesAsLayer = self.municipalities_dialog.loadSeaGrids.isChecked()
-        QSettings().setValue(
-            "/NLSgpkgloader/addDownloadedDataAsLayer", self.addDownloadedDataAsLayer
-        )
-        QSettings().setValue(
-            "/NLSgpkgloader/showMunicipalitiesAsLayer", self.showMunicipalitiesAsLayer
-        )
-        QSettings().setValue(
-            "/NLSgpkgloader/showUTMGridsAsLayer", self.showUTMGridsAsLayer
-        )
-        QSettings().setValue(
-            "/NLSgpkgloader/showSeatilesAsLayer", self.showSeatilesAsLayer
-        )
+        set_setting("addDownloadedDataAsLayer", self.addDownloadedDataAsLayer)
+        set_setting("showMunicipalitiesAsLayer", self.showMunicipalitiesAsLayer)
+        set_setting("showUTMGridsAsLayer", self.showUTMGridsAsLayer)
+        set_setting("showSeatilesAsLayer", self.showSeatilesAsLayer)
 
         found_utm5_layer = (
             found_utm10_layer
@@ -872,10 +872,10 @@ class NLSGeoPackageLoader:
         )
         self.nls_user_key_dialog.userKeyLineEdit.setText(self.nls_user_key)
         self.nls_user_key_dialog.dataLocationQgsFileWidget.setFilePath(
-            QSettings().value(
-                "/NLSgpkgloader/dataDownloadDir",
+            get_setting(
+                "dataDownloadDir",
                 os.path.join(self.path, "data"),
-                type=str,
+                typehint=str,
             )
         )
 
@@ -895,10 +895,8 @@ class NLSGeoPackageLoader:
                 self.nls_user_key_dialog.dataLocationQgsFileWidget.filePath()
             )
 
-            QSettings().setValue("/NLSgpkgloader/userKey", self.nls_user_key)
-            QSettings().setValue(
-                "/NLSgpkgloader/dataDownloadDir", self.data_download_dir
-            )
+            set_setting("userKey", self.nls_user_key)
+            set_setting("dataDownloadDir", self.data_download_dir)
             return True
 
         else:
