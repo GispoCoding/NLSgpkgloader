@@ -78,9 +78,7 @@ class NLSGeoPackageLoader:
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
         locale = QSettings().value("locale/userLocale")[0:2]
-        locale_path = os.path.join(
-            self.plugin_dir, "i18n", "NLSGeoPackageLoader_{}.qm".format(locale)
-        )
+        locale_path = resources_path("i18n", "NLSGeoPackageLoader_{}.qm".format(locale))
 
         if os.path.exists(locale_path):
             self.translator = QTranslator()
