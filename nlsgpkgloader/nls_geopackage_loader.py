@@ -21,34 +21,44 @@
 
 import io
 import os
-import sqlite3
 import xml.etree.ElementTree
 import zipfile
 from zipfile import BadZipFile
 
-import processing
 import requests
 from osgeo import ogr
-from qgis.PyQt import uic
+from qgis.core import (
+    QgsApplication,
+    QgsLayerTreeGroup,
+    QgsMessageLog,
+    QgsProject,
+    QgsVectorLayer,
+)
+from qgis.gui import QgsFileWidget
 from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTimer, QTranslator, qVersion
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QListWidgetItem, QMessageBox
-from qgis.core import (
-    QgsCoordinateReferenceSystem,
-    QgsFeature,
-    QgsFeatureRequest,
-    QgsLayerTreeGroup,
-    QgsMessageLog,
-    QgsProcessingFeedback,
-    QgsProject,
-    QgsVectorFileWriter,
-    QgsVectorLayer,
-)
-from qgis.gui import QgsBusyIndicatorDialog, QgsFileWidget
 
-NLS_USER_KEY_DIALOG_FILE = "nls_geopackage_loader_dialog_NLS_user_key.ui"
-MUNICIPALITIES_DIALOG_FILE = "nls_geopackage_loader_dialog_municipality_selection.ui"
-NLS_PROGRESS_DIALOG_FILE = "nls_geopackage_loader_dialog_progress.ui"
+from nlsgpkgloader.nls_geopackage_loader_mtk_productdata import (
+    MTK_ALL_PRODUCTS_TITLE,
+    MTK_ALL_PRODUCTS_URL,
+    MTK_LAYERS_KEY_PREFIX,
+    MTK_PRESELECTED_PRODUCTS,
+    MTK_PRODUCT_NAMES,
+    MTK_STYLED_LAYERS,
+)
+from nlsgpkgloader.nls_geopackage_loader_tasks import (
+    CleanUpTask,
+    ClipLayersTask,
+    CreateGeoPackageTask,
+    DissolveFeaturesTask,
+)
+from nlsgpkgloader.qgis_plugin_tools.tools.resources import resources_path
+from nlsgpkgloader.ui import (
+    NLSGeoPackageLoaderMunicipalitySelectionDialog,
+    NLSGeoPackageLoaderProgressDialog,
+    NLSGeoPackageLoaderUserKeyDialog,
+)
 
 
 class NLSGeoPackageLoader:
@@ -90,9 +100,8 @@ class NLSGeoPackageLoader:
         self.path = os.path.dirname(__file__)
         self.data_download_dir = self.path
 
-        self.nls_user_key_dialog = uic.loadUi(
-            os.path.join(self.path, NLS_USER_KEY_DIALOG_FILE)
-        )
+        self.nls_user_key_dialog = NLSGeoPackageLoaderUserKeyDialog()
+
         self.first_run = QSettings().value("/NLSgpkgloader/first_run", True, type=bool)
         if self.first_run:
             QSettings().setValue("/NLSgpkgloader/first_run", False)
@@ -240,9 +249,8 @@ class NLSGeoPackageLoader:
 
         self.product_types = self.downloadNLSProductTypes()
 
-        self.municipalities_dialog = uic.loadUi(
-            os.path.join(self.path, MUNICIPALITIES_DIALOG_FILE)
-        )
+        self.municipalities_dialog = NLSGeoPackageLoaderMunicipalitySelectionDialog()
+
         self.municipalities_dialog.settingsPushButton.clicked.connect(
             self.showSettingsDialog
         )
@@ -298,9 +306,7 @@ class NLSGeoPackageLoader:
                 else:
                     return
 
-            self.progress_dialog = uic.loadUi(
-                os.path.join(self.path, NLS_PROGRESS_DIALOG_FILE)
-            )
+            self.progress_dialog = NLSGeoPackageLoaderProgressDialog()
             self.progress_dialog.progressBar.hide()
             self.progress_dialog.label.setText("Initializing...")
             self.progress_dialog.show()
