@@ -38,6 +38,7 @@ from qgis.gui import QgsFileWidget
 from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTimer, QTranslator, qVersion
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QListWidgetItem, QMessageBox
+from qgis.utils import iface
 
 from nlsgpkgloader.nls_geopackage_loader_mtk_productdata import (
     MTK_ALL_PRODUCTS_TITLE,
@@ -64,7 +65,7 @@ from nlsgpkgloader.ui import (
 class NLSGeoPackageLoader:
     """QGIS Plugin Implementation."""
 
-    def __init__(self, iface):
+    def __init__(self):
         """Constructor.
 
         :param iface: An interface instance that will be passed to this class
@@ -469,7 +470,7 @@ class NLSGeoPackageLoader:
                     self.instance.addMapLayer(self.utm10_layer)
                 if not found_utm5_layer and self.utm5_layer:
                     self.instance.addMapLayer(self.utm5_layer)
-            except:
+            except Exception:
                 self.load_layers()
                 if not found_utm200_layer and self.utm200_layer:
                     self.instance.addMapLayer(self.utm200_layer)
@@ -489,14 +490,14 @@ class NLSGeoPackageLoader:
         if self.showSeatilesAsLayer and not found_seatiles_layer:
             try:
                 self.instance.addMapLayer(self.seatile_layer)
-            except:
+            except Exception:
                 self.load_layers()
                 self.instance.addMapLayer(self.seatile_layer)
 
         if self.showMunicipalitiesAsLayer and not found_municipality_layer:
             try:
                 self.instance.addMapLayer(self.municipality_layer)
-            except:
+            except Exception:
                 self.load_layers()
                 self.instance.addMapLayer(self.municipality_layer)
 
@@ -704,18 +705,6 @@ class NLSGeoPackageLoader:
             self.all_urls.extend(urls)
             self.total_download_count += len(urls)
 
-        try:
-            percentage = self.download_count / float(self.total_download_count) * 100.0
-            percentage_text = "%.2f" % round(percentage, 2)
-        except ZeroDivisionError:
-            QMessageBox.critical(
-                self.iface.mainWindow(),
-                self.tr(u"Invalid selection"),
-                self.tr(u"Found nothing to download!"),
-            )
-            self.progress_dialog.hide()
-            return
-
         self.progress_dialog.progressBar.reset()
         self.progress_dialog.progressBar.show()
         self.progress_dialog.label.setText("Downloading data...")
@@ -746,7 +735,8 @@ class NLSGeoPackageLoader:
             QgsMessageLog.logMessage(id.text, "NLSgpkgloader", 0)
 
             if title.text == "Maastotietokanta, kaikki kohteet":
-                # TODO let user choose in the options dialog if the individual layers can be selected
+                # TODO let user choose in the options dialog if the individual
+                # layers can be selected
                 for mtk_product_name in MTK_PRODUCT_NAMES:
                     products[
                         MTK_LAYERS_KEY_PREFIX + mtk_product_name
@@ -763,7 +753,10 @@ class NLSGeoPackageLoader:
             or self.download_count >= len(self.all_urls)
         ):
             QgsMessageLog.logMessage(
-                "download_count == total_download_count or download_count >= len(all_urls)",
+                (
+                    "download_count == total_download_count or "
+                    "download_count >= len(all_urls)"
+                ),
                 "NLSgpkgloader",
                 2,
             )
@@ -919,9 +912,9 @@ class NLSGeoPackageLoader:
 
     def create_download_urls(self, product_key, product_title):
         urls = []
-        if (
-            product_key
-            == "https://tiedostopalvelu.maanmittauslaitos.fi/tp/feed/mtp/maastotietokanta/kaikki"
+        if product_key == (
+            "https://tiedostopalvelu.maanmittauslaitos.fi/tp/feed"
+            "/mtp/maastotietokanta/kaikki"
         ):
             for utm_feature in self.utm25lr_features:
                 sheet_name = utm_feature["LEHTITUNNU"]

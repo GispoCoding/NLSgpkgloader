@@ -22,7 +22,7 @@
 
 
 # noinspection PyPep8Naming
-def classFactory(iface):  # pylint: disable=invalid-name
+def classFactory(iface):  # noqa N802
     """Load NLSGeoPackageLoader class from file NLSGeoPackageLoader.
 
     :param iface: A QGIS interface instance.
@@ -31,4 +31,4 @@ def classFactory(iface):  # pylint: disable=invalid-name
     #
     from .nls_geopackage_loader import NLSGeoPackageLoader
 
-    return NLSGeoPackageLoader(iface)
+    return NLSGeoPackageLoader()
