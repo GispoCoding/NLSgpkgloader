@@ -194,7 +194,7 @@ class NLSGeoPackageLoader:
 
         return action
 
-    def initGui(self):
+    def initGui(self):  # noqa N802
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
         self.add_action(
@@ -236,10 +236,10 @@ class NLSGeoPackageLoader:
         )
 
         if self.nls_user_key == "":
-            res = self.showSettingsDialog()
+            res = self.show_settings_dialog()
             if not res:
                 return
-        if not self.loadLayers():
+        if not self.load_layers():
             QMessageBox.critical(
                 self.iface.mainWindow(),
                 self.tr(u"Failed to load data"),
@@ -247,12 +247,12 @@ class NLSGeoPackageLoader:
             )
             return
 
-        self.product_types = self.downloadNLSProductTypes()
+        self.product_types = self.download_nls_product_types()
 
         self.municipalities_dialog = NLSGeoPackageLoaderMunicipalitySelectionDialog()
 
         self.municipalities_dialog.settingsPushButton.clicked.connect(
-            self.showSettingsDialog
+            self.show_settings_dialog
         )
         self.municipalities_dialog.fileNameEdit.setValue(self.fileName)
         self.municipalities_dialog.loadLayers.setChecked(self.addDownloadedDataAsLayer)
@@ -261,17 +261,17 @@ class NLSGeoPackageLoader:
         )
         self.municipalities_dialog.loadUtmGrids.setChecked(self.showUTMGridsAsLayer)
         self.municipalities_dialog.loadSeaGrids.setChecked(self.showSeatilesAsLayer)
-        self.municipalities_dialog.loadLayers.stateChanged.connect(self.toggleLayers)
-        self.municipalities_dialog.loadMunLayer.stateChanged.connect(self.toggleLayers)
-        self.municipalities_dialog.loadUtmGrids.stateChanged.connect(self.toggleLayers)
-        self.municipalities_dialog.loadSeaGrids.stateChanged.connect(self.toggleLayers)
-        self.toggleLayers()
+        self.municipalities_dialog.loadLayers.stateChanged.connect(self.toggle_layers)
+        self.municipalities_dialog.loadMunLayer.stateChanged.connect(self.toggle_layers)
+        self.municipalities_dialog.loadUtmGrids.stateChanged.connect(self.toggle_layers)
+        self.municipalities_dialog.loadSeaGrids.stateChanged.connect(self.toggle_layers)
+        self.toggle_layers()
 
         for feature in self.municipality_layer.getFeatures():
             item = QListWidgetItem(feature["NAMEFIN"])
             self.municipalities_dialog.municipalityListWidget.addItem(item)
 
-        for key, value in self.product_types.items():
+        for value in self.product_types.values():
             item = QListWidgetItem(value)
             self.municipalities_dialog.productListWidget.addItem(item)
             if value in MTK_PRESELECTED_PRODUCTS:
@@ -365,20 +365,20 @@ class NLSGeoPackageLoader:
             if len(product_types) > 0 and len(self.selected_geoms) > 0:
                 QCoreApplication.processEvents()
 
-                self.getIntersectingFeatures(
+                self.get_intersecting_features(
                     self.municipality_layer.selectedFeatures(),
                     self.utm25lr_layer,
                     selected_mun_names,
                 )
-                self.getIntersectingFeatures(
+                self.get_intersecting_features(
                     self.seatile_layer.selectedFeatures(), self.utm25lr_layer
                 )
                 for grid in grids:
-                    self.getIntersectingFeatures(
+                    self.get_intersecting_features(
                         grid.selectedFeatures(), self.utm25lr_layer
                     )
 
-                self.downloadData(product_types)
+                self.download_data(product_types)
 
             else:
                 self.progress_dialog.hide()
@@ -389,7 +389,7 @@ class NLSGeoPackageLoader:
                 )
                 return
 
-    def toggleLayers(self):
+    def toggle_layers(self):
         """Load municipality and map tile layers"""
         self.addDownloadedDataAsLayer = (
             self.municipalities_dialog.loadLayers.isChecked()
@@ -424,7 +424,7 @@ class NLSGeoPackageLoader:
             found_utm100_layer
         ) = found_utm200_layer = found_seatiles_layer = found_municipality_layer = False
 
-        current_layers = self.getLayers(self.instance.layerTreeRoot())
+        current_layers = self.get_layers(self.instance.layerTreeRoot())
 
         for current_layer in current_layers:
             if current_layer.layer() == self.utm5_layer:
@@ -472,7 +472,7 @@ class NLSGeoPackageLoader:
                 if not found_utm5_layer and self.utm5_layer:
                     self.instance.addMapLayer(self.utm5_layer)
             except:
-                self.loadLayers()
+                self.load_layers()
                 if not found_utm200_layer and self.utm200_layer:
                     self.instance.addMapLayer(self.utm200_layer)
                 if not found_utm100_layer and self.utm100_layer:
@@ -492,17 +492,17 @@ class NLSGeoPackageLoader:
             try:
                 self.instance.addMapLayer(self.seatile_layer)
             except:
-                self.loadLayers()
+                self.load_layers()
                 self.instance.addMapLayer(self.seatile_layer)
 
         if self.showMunicipalitiesAsLayer and not found_municipality_layer:
             try:
                 self.instance.addMapLayer(self.municipality_layer)
             except:
-                self.loadLayers()
+                self.load_layers()
                 self.instance.addMapLayer(self.municipality_layer)
 
-    def loadLayers(self):
+    def load_layers(self):
         self.municipality_layer = QgsVectorLayer(
             resources_path("data", "SuomenKuntajako_2018_10k.shp"),
             "municipalities",
@@ -610,7 +610,7 @@ class NLSGeoPackageLoader:
             self.seatile_layer = False
 
         self.instance = QgsProject.instance()
-        current_layers = self.getLayers(self.instance.layerTreeRoot())
+        current_layers = self.get_layers(self.instance.layerTreeRoot())
 
         for lnode in current_layers:
             if (
@@ -661,16 +661,16 @@ class NLSGeoPackageLoader:
 
         return True
 
-    def getLayers(self, root):
+    def get_layers(self, root):
         layers = []
         for node in root.children():
             if isinstance(node, QgsLayerTreeGroup):
-                layers.extend(self.getLayers(node))
+                layers.extend(self.get_layers(node))
             else:
                 layers.append(node)
         return layers
 
-    def getIntersectingFeatures(self, features, layer, selected_mun_names=None):
+    def get_intersecting_features(self, features, layer, selected_mun_names=None):
         if selected_mun_names:
             expression = ""
             for mun in selected_mun_names:
@@ -694,7 +694,7 @@ class NLSGeoPackageLoader:
                     if feature not in self.utm25lr_features:
                         self.utm25lr_features.append(layer_feature)
 
-    def downloadData(self, product_types):
+    def download_data(self, product_types):
 
         self.all_urls = []
         self.total_download_count = 0
@@ -702,7 +702,7 @@ class NLSGeoPackageLoader:
         self.layers_added_count = 0
 
         for product_key, product_title in product_types.items():
-            urls = self.createDownloadURLS(product_key, product_title)
+            urls = self.create_download_urls(product_key, product_title)
             self.all_urls.extend(urls)
             self.total_download_count += len(urls)
 
@@ -721,9 +721,9 @@ class NLSGeoPackageLoader:
         self.progress_dialog.progressBar.reset()
         self.progress_dialog.progressBar.show()
         self.progress_dialog.label.setText("Downloading data...")
-        QTimer.singleShot(1000, self.downloadOneFile)
+        QTimer.singleShot(1000, self.download_one_file)
 
-    def downloadNLSProductTypes(self):
+    def download_nls_product_types(self):
         products = {}
 
         url = (
@@ -759,7 +759,7 @@ class NLSGeoPackageLoader:
 
         return products
 
-    def downloadOneFile(self):
+    def download_one_file(self):
         if (
             self.download_count == self.total_download_count
             or self.download_count >= len(self.all_urls)
@@ -814,16 +814,16 @@ class NLSGeoPackageLoader:
 
         if self.download_count == self.total_download_count:
             QgsMessageLog.logMessage("done downloading data", "NLSgpkgloader", 0)
-            self.createGeoPackage()
+            self.create_geopackage()
         else:
-            QTimer.singleShot(10, self.downloadOneFile)
+            QTimer.singleShot(10, self.download_one_file)
 
-    def createGeoPackage(self):
+    def create_geopackage(self):
         """Creates a GeoPackage from the downloaded MTK data"""
         self.progress_dialog.progressBar.reset()
         self.progress_dialog.label.setText("Writing layers to GeoPackage...")
 
-        writeTask = CreateGeoPackageTask(
+        write_task = CreateGeoPackageTask(
             "Write GML to GPKG",
             self.all_urls,
             self.total_download_count,
@@ -831,25 +831,25 @@ class NLSGeoPackageLoader:
             self.data_download_dir,
             self.gpkg_path,
         )
-        dissolveTask = DissolveFeaturesTask("Dissolve features", self.gpkg_path)
-        clipTask = ClipLayersTask("Clip layers", self.selected_geoms, self.gpkg_path)
-        cleanupTask = CleanUpTask("Delete temporary tables", self.path, self.gpkg_path)
+        dissolve_task = DissolveFeaturesTask("Dissolve features", self.gpkg_path)
+        clip_task = ClipLayersTask("Clip layers", self.selected_geoms, self.gpkg_path)
+        cleanup_task = CleanUpTask("Delete temporary tables", self.path, self.gpkg_path)
 
-        writeTask.taskCompleted.connect(lambda: self.runTask(dissolveTask))
-        dissolveTask.taskCompleted.connect(lambda: self.runTask(clipTask))
-        clipTask.taskCompleted.connect(lambda: self.runTask(cleanupTask))
-        cleanupTask.taskCompleted.connect(lambda: self.finishProcessing())
+        write_task.taskCompleted.connect(lambda: self.run_task(dissolve_task))
+        dissolve_task.taskCompleted.connect(lambda: self.run_task(clip_task))
+        clip_task.taskCompleted.connect(lambda: self.run_task(cleanup_task))
+        cleanup_task.taskCompleted.connect(lambda: self.finish_processing())
 
-        self.runTask(writeTask)
+        self.run_task(write_task)
 
-    def runTask(self, task):
+    def run_task(self, task):
         self.progress_dialog.label.setText(task.description())
         task.progressChanged.connect(
             lambda: self.progress_dialog.progressBar.setValue(task.progress())
         )
         QgsApplication.taskManager().addTask(task)
 
-    def finishProcessing(self):
+    def finish_processing(self):
         if self.addDownloadedDataAsLayer:
             self.progress_dialog.label.setText("Adding layers to QGIS")
             self.progress_dialog.progressBar.hide()
@@ -875,7 +875,7 @@ class NLSGeoPackageLoader:
         self.progress_dialog.hide()
         return True
 
-    def showSettingsDialog(self):
+    def show_settings_dialog(self):
         self.nls_user_key_dialog.dataLocationQgsFileWidget.setStorageMode(
             QgsFileWidget.GetDirectory
         )
@@ -919,7 +919,7 @@ class NLSGeoPackageLoader:
             )
             return False
 
-    def createDownloadURLS(self, product_key, product_title):
+    def create_download_urls(self, product_key, product_title):
         urls = []
         if (
             product_key

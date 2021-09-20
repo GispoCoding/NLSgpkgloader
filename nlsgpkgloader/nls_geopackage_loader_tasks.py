@@ -47,17 +47,17 @@ class CreateGeoPackageTask(QgsTask):
         self.gpkg_path = path
 
     def run(self):
-        for dlIndex in range(0, self.total_download_count):
-            url = self.all_urls[dlIndex][0]
+        for dl_index in range(0, self.total_download_count):
+            url = self.all_urls[dl_index][0]
             url_parts = url.split("/")
             file_name = url_parts[-1].split("?")[0]
-            data_dir_name = self.all_urls[dlIndex][1]
+            data_dir_name = self.all_urls[dl_index][1]
             data_dir_name = data_dir_name.replace(":", "_suhde_")
             dir_path = os.path.join(self.data_download_dir, data_dir_name)
             dir_path = os.path.join(dir_path, file_name.split(".")[0])
-            data_type = self.all_urls[dlIndex][3]
+            data_type = self.all_urls[dl_index][3]
 
-            percentage = dlIndex / float(self.total_download_count) * 100.0
+            percentage = dl_index / float(self.total_download_count) * 100.0
             self.setProgress(percentage)
 
             if not os.path.exists(dir_path):
@@ -203,7 +203,7 @@ class ClipLayersTask(QgsTask):
         self.gpkg_path = path
 
     def run(self):
-        combinedGeomLayer = QgsVectorLayer(
+        combined_geom_layer = QgsVectorLayer(
             "MultiPolygon?crs=EPSG:3067", "clipLayer", "memory"
         )
         geom_union = None
@@ -212,17 +212,17 @@ class ClipLayersTask(QgsTask):
                 geom_union = geom
             else:
                 geom_union = geom_union.combine(geom)
-        dp = combinedGeomLayer.dataProvider()
+        dp = combined_geom_layer.dataProvider()
 
-        combinedGeomLayer.startEditing()
+        combined_geom_layer.startEditing()
         feat = QgsFeature()
         feat.setGeometry(geom_union)
         dp.addFeature(feat)
-        combinedGeomLayer.commitChanges()
+        combined_geom_layer.commitChanges()
 
-        params = {"INPUT": combinedGeomLayer, "OUTPUT": "memory:geomUnionLayer"}
+        params = {"INPUT": combined_geom_layer, "OUTPUT": "memory:geomUnionLayer"}
         result = processing.run("native:dissolve", params)
-        geomUnionLayer = result["OUTPUT"]
+        geom_union_layer = result["OUTPUT"]
 
         conn = ogr.Open(self.gpkg_path)
         total_tables = len(conn)
@@ -243,7 +243,7 @@ class ClipLayersTask(QgsTask):
                 layer_name = "zz_" + layer_name
             params = {
                 "INPUT": self.gpkg_path + "|layername=" + table_name,
-                "OVERLAY": geomUnionLayer,
+                "OVERLAY": geom_union_layer,
                 "OUTPUT": "ogr:dbname='"
                 + self.gpkg_path
                 + "' table=\""

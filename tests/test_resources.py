@@ -15,9 +15,11 @@ __copyright__ = "Copyright 2019, Gispo Oy"
 
 from qgis.PyQt.QtGui import QIcon
 
+from nlsgpkgloader.qgis_plugin_tools.tools.resources import resources_path
+
 
 def test_icon_png():
     """Test we can click OK."""
-    path = ":/plugins/NLSGeoPackageLoader/icon.png"
+    path = resources_path("icons", "icon.png")
     icon = QIcon(path)
     assert icon is not None
