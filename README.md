@@ -2,15 +2,19 @@
 
 This plugin lets users download NLS.fi open MTK data (CC-BY 4.0) using QGIS3. It utilizes the NLS Open data file updating service (Atom feed). You need to order a user-specific identification key from NLS to be able to use this plugin: http://www.maanmittauslaitos.fi/en/e-services/open-data-file-download-service/open-data-file-updating-service-interface.
 
-The plugin is still in beta-development. Please report issues preferably to Issues or to tuki@gispo.fi.
+Please report any issues you discover.
 
-Note that this plugin is now also available from the official plugin repository and can be installed straight from Plugins menu in QGIS.
+This plugin is available from the official plugin repository and can be installed from the QGIS Plugins menu.
 
 **Developed by [Gispo Ltd.](https://www.gispo.fi)**
 
 ## Licences
 
-This plugin utilizes data licensed by Traficom and National Land Survey of Finland. **Please read [data/LICENCE.txt](data/LICENCE.txt) for more information.**
+This plugin utilizes data licensed by Traficom and National Land Survey of Finland. **Please read [nlsgpkgloader/resources/data/LICENCE.md](nlsgpkgloader/resources/data/LICENCE.md) for more information.**
+
+The plugin source code is licensed under GPL v3.0, see [LICENCE](LICENCE).
+
+The QGIS layer styles in [layer_styles.sql](nlsgpkgloader/resources/data/layer_styles.sql) are licensed under CC-BY-4.0, see [LICENCE.CC-BY-4](LICENCE.CC-BY-4).
 
 ## Installation instructions
 
