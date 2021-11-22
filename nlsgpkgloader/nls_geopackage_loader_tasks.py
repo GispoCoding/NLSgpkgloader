@@ -20,13 +20,13 @@
 import os
 import sqlite3
 
-import processing  # pylint: disable=import-error
 from osgeo import ogr
-from processing.tools import dataobjects  # pylint: disable=import-error
+from qgis import processing
 from qgis.core import (
     QgsFeature,
     QgsFeatureRequest,
     QgsMessageLog,
+    QgsProcessingContext,
     QgsTask,
     QgsVectorFileWriter,
     QgsVectorLayer,
@@ -180,7 +180,8 @@ class DissolveFeaturesTask(QgsTask):
                 + layer_name
                 + '" (geom) sql=',
             }
-            context = dataobjects.createContext()
+
+            context = QgsProcessingContext()
             context.setInvalidGeometryCheck(QgsFeatureRequest.GeometrySkipInvalid)
             processing.run("native:dissolve", params, context=context)
             percentage = i / float(total_tables) * 100.0
