@@ -12,8 +12,8 @@ extend-exclude = '''
 '''
 
 [tool.pytest.ini_options]
-addopts = "-v"
+addopts = "-v --cov=nlsgpkgloader --cov-report html --cov-report term"
 testpaths = "tests"
 
 [tool.coverage.report]
-omit = "nlsgpkgloader/qgis_plugin_tools/*"
+omit = ["nlsgpkgloader/qgis_plugin_tools/*"]
