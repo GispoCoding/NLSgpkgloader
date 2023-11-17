@@ -16,15 +16,21 @@ jobs:
     strategy:
       matrix:
         # Remove unsupported versions and add more versions. Use LTR version in the cov_tests job
-        docker_tags: [release-3_10, release-3_16, latest]
+        docker_tags: [release-3_28, latest]
       fail-fast: false
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: true
+
+      - uses: actions/setup-python@v4
+        with:
+          cache: pip
+      - run: pip install pip-tools
+      - run: pip-compile requirements-dev.in
 
       - name: Pull qgis
         run: docker pull qgis/qgis:${{ matrix.docker_tags }}
@@ -62,7 +68,7 @@ jobs:
       - name: Run tests
         shell: pwsh
         run: |
-          $env:PATH="C:\Program Files\QGIS 3.16\bin;$env:PATH"
+          $env:PATH=(Get-ChildItem -Path "C:\Program Files" -Directory QGIS*).FullName +"\bin;$env:PATH"
           $env:QGIS_PLUGIN_IN_CI=1
           python-qgis-ltr.bat -m pip install -qr requirements-dev.txt
           python-qgis-ltr.bat -m pytest -v
