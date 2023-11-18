@@ -89,7 +89,7 @@ class NLSGeoPackageLoader:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u"&NLS GeoPackage Downloader")
+        self.menu = self.tr("&NLS GeoPackage Downloader")
 
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
@@ -200,7 +200,7 @@ class NLSGeoPackageLoader:
 
         self.add_action(
             resources_path("icons", "icon.png"),
-            text=self.tr(u"NLS GeoPackage Downloader"),
+            text=self.tr("NLS GeoPackage Downloader"),
             callback=self.run,
             parent=self.iface.mainWindow(),
         )
@@ -220,7 +220,7 @@ class NLSGeoPackageLoader:
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
-            self.iface.removePluginMenu(self.tr(u"&NLS GeoPackage Downloader"), action)
+            self.iface.removePluginMenu(self.tr("&NLS GeoPackage Downloader"), action)
             self.iface.removeToolBarIcon(action)
 
     def run(self):
@@ -249,8 +249,8 @@ class NLSGeoPackageLoader:
         if not self.load_layers():
             QMessageBox.critical(
                 self.iface.mainWindow(),
-                self.tr(u"Failed to load data"),
-                self.tr(u"Check that necessary files exist in data folder"),
+                self.tr("Failed to load data"),
+                self.tr("Check that necessary files exist in data folder"),
             )
             return
 
@@ -292,8 +292,8 @@ class NLSGeoPackageLoader:
             if self.fileName == "":
                 QMessageBox.critical(
                     self.iface.mainWindow(),
-                    self.tr(u"Invalid filename"),
-                    self.tr(u"Please enter a filename"),
+                    self.tr("Invalid filename"),
+                    self.tr("Please enter a filename"),
                 )
                 return
             if self.fileName.split(".")[-1].lower() != "gpkg":
@@ -391,8 +391,8 @@ class NLSGeoPackageLoader:
                 self.progress_dialog.hide()
                 QMessageBox.critical(
                     self.iface.mainWindow(),
-                    self.tr(u"Invalid selection"),
-                    self.tr(u"Found nothing to download!"),
+                    self.tr("Invalid selection"),
+                    self.tr("Found nothing to download!"),
                 )
                 return
 
@@ -673,7 +673,7 @@ class NLSGeoPackageLoader:
         if selected_mun_names:
             expression = ""
             for mun in selected_mun_names:
-                expression += u'"NAMEFIN" = \'' + mun + u"' OR "
+                expression += '"NAMEFIN" = \'' + mun + "' OR "
             expression = expression[:-4]
 
             iter = self.municipality_layer.getFeatures(expression)
@@ -694,7 +694,6 @@ class NLSGeoPackageLoader:
                         self.utm25lr_features.append(layer_feature)
 
     def download_data(self, product_types):
-
         self.all_urls = []
         self.total_download_count = 0
         self.download_count = 0
@@ -858,9 +857,8 @@ class NLSGeoPackageLoader:
                         )
                     )
         self.iface.messageBar().pushMessage(
-            self.tr(u"GeoPackage creation finished"),
-            self.tr(u"NLS data download finished. Data located under ")
-            + self.gpkg_path,
+            self.tr("GeoPackage creation finished"),
+            self.tr("NLS data download finished. Data located under ") + self.gpkg_path,
             level=3,
         )
         self.progress_dialog.hide()
@@ -887,8 +885,8 @@ class NLSGeoPackageLoader:
                 # cannot work without the key, so user needs to be notified
                 QMessageBox.critical(
                     self.iface.mainWindow(),
-                    self.tr(u"User-key is needed"),
-                    self.tr(u"Data cannot be downloaded without the NLS key"),
+                    self.tr("User-key is needed"),
+                    self.tr("Data cannot be downloaded without the NLS key"),
                 )
                 return False
             self.data_download_dir = (
@@ -903,8 +901,8 @@ class NLSGeoPackageLoader:
             # cannot work without the key, so user needs to be notified
             QMessageBox.critical(
                 self.iface.mainWindow(),
-                self.tr(u"User-key is needed"),
-                self.tr(u"Data cannot be downloaded without the NLS key"),
+                self.tr("User-key is needed"),
+                self.tr("Data cannot be downloaded without the NLS key"),
             )
             return False
 

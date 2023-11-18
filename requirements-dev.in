@@ -1,0 +1,16 @@
+pip-tools
+
+# Testing
+pytest
+pytest-cov
+pytest-qgis
+
+# Linting and formatting
+pre-commit
+black
+isort
+flake8
+flake8-bugbear
+pep8-naming
+flake8-qgis
+PyQt5-stubs

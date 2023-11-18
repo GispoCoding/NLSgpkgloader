@@ -2,5 +2,7 @@
 # Black compatible values https://black.readthedocs.io/en/stable/compatible_configs.html#flake8
 max-line-length = 88
 extend-ignore =
-            E203, # whitespace before ':'
-            ANN101 # Missing type annotation for self in method
+    # E203: whitespace before ':'
+    E203,
+    # ANN101: Missing type annotation for self in method
+    ANN101
