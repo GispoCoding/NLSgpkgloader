@@ -17,3 +17,8 @@ testpaths = "tests"
 
 [tool.coverage.report]
 omit = ["nlsgpkgloader/qgis_plugin_tools/*"]
+
+[tool.qgis-plugin-ci]
+plugin_path = "nlsgpkgloader"
+github_organization_slug = "GispoCoding"
+project_slug = "NLSgpkgloader"
