@@ -1,12 +1,36 @@
 # NLS GeoPackage Downloader QGIS plugin
 
-This plugin lets users download NLS.fi open MTK data (CC-BY 4.0) using QGIS3. It utilizes the NLS Open data file updating service (Atom feed). You need to order a user-specific identification key from NLS to be able to use this plugin: http://www.maanmittauslaitos.fi/en/e-services/open-data-file-download-service/open-data-file-updating-service-interface.
+## Shortly in Finnish
+
+Tällä QGIS 3 -lisäosalla voit hakea Maanmittauslaitoksen maastotietokannasta karttalehdittäin tai alueittain kohteita valmiiksi visualisoituna ja yhdisteltynä.
+
+Tarvitset työkalun käyttöön käyttäjätunnuksen, jonka voit hakea täältä <http://www.maanmittauslaitos.fi/en/e-services/open-data-file-download-service/open-data-file-updating-service-interface>.
+
+Aineisto haetaan MML:n ATOM-syötteen kautta, yhdistetään tietyt kohteet karttalehtien välillä ja visualisoidaan peruskarttalehteä muistuttavalla visualisoinnilla.
+
+## Description
+
+The tool can be found from QGIS official repository <https://plugins.qgis.org/plugins/NLSgpkgloader-master/>
+
+Download data from the Finnish NLS Atom feed and create a GeoPackage with built-in styles.
+
+This plugin lets users download layers from National Land Survey of Finland's (NLS-FI) topographical database using QGIS3. The data is visualised and dissolved when downloaded to QGIS. The lisence of the data is (CC-BY 4.0). The plugin fetches the NLS-FI Open data file updating service (Atom feed).
+
+Before you can use the tool, you need to order a user-specific identification key from NLS to be able to use this plugin: <http://www.maanmittauslaitos.fi/en/e-services/open-data-file-download-service/open-data-file-updating-service-interface>.
 
 Please report any issues you discover.
 
 This plugin is available from the official plugin repository and can be installed from the QGIS Plugins menu.
 
 **Developed by [Gispo Ltd.](https://www.gispo.fi)**
+
+<img width="300" alt="Download data dialog" src="documentation/download_data.png">
+
+<img width="500" alt="Project view" src="documentation/project.png">
+
+## Usage and installation
+
+Please read [Instructions.md](nlsgpkgloader/documentation/instructions.md) for more information.
 
 ## Licences
 
@@ -15,27 +39,3 @@ This plugin utilizes data licensed by Traficom and National Land Survey of Finla
 The plugin source code is licensed under GPL v3.0, see [LICENCE](LICENCE).
 
 The QGIS layer styles in [layer_styles.sql](nlsgpkgloader/resources/data/layer_styles.sql) are licensed under CC-BY-4.0, see [LICENCE.CC-BY-4](LICENCE.CC-BY-4).
-
-## Installation instructions
-
-1. Download the latest release zip from GitHub releases (above) either via Clone or Download ZIP.
-
-2. Launch QGIS and navigate to the plugins menu by selecting Plugins - Manage and Install Plugins from the top menu.
-
-3. Select the Install from ZIP tab, browse to the zip file you just downloaded, and click Install Plugin!
-
-## Usage
-
-Using the plugin is fairly straightforward:
-
-1. Click the NLS plugin icon. Settings window open. Enter a valid identification key (received via email from NLS)
-   and set the save directory.
-2. Another pop-up window, Download Data, opens. If the Settings window did not open as described in step 1, you can
-   find it by pushing Settings button in the left bottom corner of the Download Data window.
-3. Select which areas to download either by picking municipalities / UTM grids / Sea grids from the list or by selecting
-   features from the map.
-4. Choose which layers to write to the GeoPackage. Note that some layers are preselected.
-5. Enter a filename. If you wish to load the GeoPackage layers into QGIS, activate Load data check box.
-6. Click OK and wait for processing to finish.
-
-More documentation, including more detailed installation and usage instructions in Finnish, can be found in the [Wiki](https://github.com/GispoCoding/NLSgpkgloader/wiki).
