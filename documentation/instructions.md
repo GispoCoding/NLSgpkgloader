@@ -1,8 +1,8 @@
 ## Installation instructions
 
-The plugin can be found from QGIS official repository: https://plugins.qgis.org/plugins/NLSgpkgloader-master/ 
+The plugin can be found from QGIS official repository: <https://plugins.qgis.org/plugins/NLSgpkgloader-master/>
 
-Go to QGIS 3.X, Plugins and find "NLS GeoPackage Downloader" and install. 
+Go to QGIS 3.X, Plugins and find "NLS GeoPackage Downloader" and install.
 
 <img width="474" alt="image" src="https://github.com/GispoCoding/NLSgpkgloader/assets/23258285/2998b82c-72a0-4ad7-b8c5-7de5066b2d12">
 
@@ -11,9 +11,9 @@ Go to QGIS 3.X, Plugins and find "NLS GeoPackage Downloader" and install.
 Using the plugin is fairly straightforward:
 
 1. Click the NLS plugin icon or go to Plugins/NLS GeoPackage Downloader.
-   
+
 2. First time you use the plugin a Settings window opens. Enter the valid identification key (received via email from NLS)
-   and set the save directory. If this does not happen check step 3. You can also define in the Settings where the datasets are downloaded. 
+   and set the save directory. If this does not happen check step 3. You can also define in the Settings where the datasets are downloaded.
 
 <img width="248" alt="image" src="https://github.com/GispoCoding/NLSgpkgloader/assets/23258285/1845eef6-156b-4566-bd05-1f14a1b2fdde">
 
@@ -23,6 +23,7 @@ Using the plugin is fairly straightforward:
 <img width="277" alt="image" src="https://github.com/GispoCoding/NLSgpkgloader/assets/23258285/cda6db89-750b-400e-9cf6-d21dd4906d36">
 
 4. Now you can choose which layers and from what area you want to download the data. Note: the datasets are quite heavy, so it might take time if you choose a large area.
+
 - Select the layers you want: Note that some layers are preselected because they have ready made visualisations. If you need data from only one layer deselect the layers you do not need.
 
 <img width="194" alt="image" src="https://github.com/GispoCoding/NLSgpkgloader/assets/23258285/7c16edf6-2414-4e86-9798-fc77d8f409ed">
@@ -37,6 +38,6 @@ Using the plugin is fairly straightforward:
 
 5. Enter a filename. If you wish to load the GeoPackage layers into QGIS, activate Load data check box.
 
-6. Click OK and wait for processing to finish. The tool fetches all the wanted layers and those that were preselected are always visualised and rule based visualisation created for certain classes. Also scale has been taken into accout so that e.g. road classes are shown differently in different scales. These can be edited via layer styling panel. 
+6. Click OK and wait for processing to finish. The tool fetches all the wanted layers and those that were preselected are always visualised and rule based visualisation created for certain classes. Also scale has been taken into accout so that e.g. road classes are shown differently in different scales. These can be edited via layer styling panel.
 
 ![image](https://github.com/GispoCoding/NLSgpkgloader/assets/23258285/ed4c8c2e-599b-4c10-8ec7-606d385aaa40)
