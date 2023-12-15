@@ -24,9 +24,9 @@ This plugin is available from the official plugin repository and can be installe
 
 **Developed by [Gispo Ltd.](https://www.gispo.fi)**
 
-<img width="300" alt="image" src="documentation/download_data.png">
+<img width="300" alt="Download data dialog" src="documentation/download_data.png">
 
-<img width="500" alt="image" src="documentation/project.png">
+<img width="500" alt="Project view" src="documentation/project.png">
 
 ## Usage and installation
 
