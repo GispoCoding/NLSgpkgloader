@@ -24,9 +24,9 @@ This plugin is available from the official plugin repository and can be installe
 
 **Developed by [Gispo Ltd.](https://www.gispo.fi)**
 
-<img width="300" alt="image" src="https://github.com/GispoCoding/NLSgpkgloader/assets/23258285/cda6db89-750b-400e-9cf6-d21dd4906d36">
+<img width="300" alt="image" src="documentation/download_data.png">
 
-<img width="500" alt="image" src="https://github.com/GispoCoding/NLSgpkgloader/assets/23258285/75e6d422-740b-46f8-b225-3121ebab91bd)">
+<img width="500" alt="image" src="documentation/project.png">
 
 ##  Usage and installation
 
