@@ -2,7 +2,7 @@
 
 ## Shortly in Finnish 
 
-Tällä QGIS 3 lisäosalla voit hakea Maanmittauslaitoksen maastotietokannasta karttalehdittäin tai alueittain kohteita valmiiksi visualisoituna ja yhdisteltynä. 
+Tällä QGIS 3 -lisäosalla voit hakea Maanmittauslaitoksen maastotietokannasta karttalehdittäin tai alueittain kohteita valmiiksi visualisoituna ja yhdisteltynä. 
 
 Tarvitset työkalun käyttöön käyttäjätunnuksen, jonka voit hakea täältä http://www.maanmittauslaitos.fi/en/e-services/open-data-file-download-service/open-data-file-updating-service-interface. 
 
@@ -30,7 +30,7 @@ This plugin is available from the official plugin repository and can be installe
 
 ##  Usage and installation
 
-Please read [Instructions.md](nlsgpkgloader/Documentation/Instructions.md) for more information.
+Please read [Instructions.md](nlsgpkgloader/documentation/instructions.md) for more information.
 
 ## Licences
 
