@@ -666,16 +666,12 @@ class NLSGeoPackageLoader:
 
     def select_deselect_all_layers(self):
         if self.municipalities_dialog.selectDeselectAll.isChecked():
-            items_to_select = []
             for value in self.product_types.values():
                 items = self.municipalities_dialog.productListWidget.findItems(
                     value, Qt.MatchExactly
                 )
                 if items:
-                    items_to_select.append(items[0])
-
-            for item in items_to_select:
-                item.setSelected(True)
+                    items[0].setSelected(True)
         else:
             self.municipalities_dialog.productListWidget.clearSelection()
 
