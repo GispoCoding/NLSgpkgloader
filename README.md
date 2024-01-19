@@ -30,7 +30,7 @@ This plugin is available from the official plugin repository and can be installe
 
 ## Usage and installation
 
-Please read [Instructions.md](nlsgpkgloader/documentation/instructions.md) for more information.
+Please read [Instructions.md](documentation/instructions.md) for more information.
 
 ## Licences
 
