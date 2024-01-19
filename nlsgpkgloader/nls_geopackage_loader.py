@@ -45,7 +45,6 @@ from nlsgpkgloader.nls_geopackage_loader_mtk_productdata import (
     MTK_ALL_PRODUCTS_TITLE,
     MTK_ALL_PRODUCTS_URL,
     MTK_LAYERS_KEY_PREFIX,
-    MTK_PRESELECTED_PRODUCTS,
     MTK_PRODUCT_NAMES,
     MTK_STYLED_LAYERS,
 )
@@ -281,7 +280,7 @@ class NLSGeoPackageLoader:
         for value in self.product_types.values():
             item = QListWidgetItem(value)
             self.municipalities_dialog.productListWidget.addItem(item)
-            if value in MTK_PRESELECTED_PRODUCTS:
+            if value in MTK_STYLED_LAYERS:
                 self.municipalities_dialog.productListWidget.setCurrentItem(item)
 
         self.municipalities_dialog.show()
@@ -846,8 +845,8 @@ class NLSGeoPackageLoader:
             conn = ogr.Open(self.gpkg_path)
             for i in conn:
                 if (
-                    i.GetName() in MTK_STYLED_LAYERS.values()
-                    or i.GetName()[3:] in MTK_PRODUCT_NAMES
+                    i.GetName() in MTK_STYLED_LAYERS
+                    or i.GetName() in MTK_PRODUCT_NAMES
                 ):
                     self.instance.addMapLayer(
                         QgsVectorLayer(

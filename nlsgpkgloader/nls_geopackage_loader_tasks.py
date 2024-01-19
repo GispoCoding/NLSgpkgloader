@@ -238,10 +238,6 @@ class ClipLayersTask(QgsTask):
                     return False
                 continue
             layer_name = table_name[2:]
-            if layer_name in MTK_STYLED_LAYERS.keys():
-                layer_name = MTK_STYLED_LAYERS[layer_name]
-            else:
-                layer_name = "zz_" + layer_name
             params = {
                 "INPUT": self.gpkg_path + "|layername=" + table_name,
                 "OVERLAY": geom_union_layer,
