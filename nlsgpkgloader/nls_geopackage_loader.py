@@ -36,7 +36,7 @@ from qgis.core import (
     QgsVectorLayer,
 )
 from qgis.gui import QgsFileWidget
-from qgis.PyQt.QtCore import QCoreApplication, QTimer, QTranslator, qVersion
+from qgis.PyQt.QtCore import QCoreApplication, Qt, QTimer, QTranslator, qVersion
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QListWidgetItem, QMessageBox
 from qgis.utils import iface
@@ -285,6 +285,10 @@ class NLSGeoPackageLoader:
                 self.municipalities_dialog.productListWidget.setCurrentItem(item)
 
         self.municipalities_dialog.show()
+
+        self.municipalities_dialog.selectDeselectAll.clicked.connect(
+            self.select_deselect_all_layers
+        )
 
         result = self.municipalities_dialog.exec_()
         if result:
@@ -660,6 +664,17 @@ class NLSGeoPackageLoader:
 
         return True
 
+    def select_deselect_all_layers(self):
+        if self.municipalities_dialog.selectDeselectAll.isChecked():
+            for value in self.product_types.values():
+                items = self.municipalities_dialog.productListWidget.findItems(
+                    value, Qt.MatchExactly
+                )
+                if items:
+                    items[0].setSelected(True)
+        else:
+            self.municipalities_dialog.productListWidget.clearSelection()
+
     def get_layers(self, root):
         layers = []
         for node in root.children():
@@ -800,7 +815,7 @@ class NLSGeoPackageLoader:
 
         self.download_count += 1
         percentage = self.download_count / float(self.total_download_count) * 100.0
-        self.progress_dialog.progressBar.setValue(percentage)
+        self.progress_dialog.progressBar.setValue(int(percentage))
 
         if self.download_count == self.total_download_count:
             QgsMessageLog.logMessage("done downloading data", "NLSgpkgloader", 0)
@@ -835,7 +850,7 @@ class NLSGeoPackageLoader:
     def run_task(self, task):
         self.progress_dialog.label.setText(task.description())
         task.progressChanged.connect(
-            lambda: self.progress_dialog.progressBar.setValue(task.progress())
+            lambda: self.progress_dialog.progressBar.setValue(int(task.progress()))
         )
         QgsApplication.taskManager().addTask(task)
 
