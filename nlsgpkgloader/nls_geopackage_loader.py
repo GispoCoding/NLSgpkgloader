@@ -879,7 +879,18 @@ class NLSGeoPackageLoader:
         self.progress_dialog.hide()
         return True
 
+    def get_nls_user_key(self):
+        return self.nls_user_key_dialog.userKeyLineEdit.text().strip()
+
+    def show_missing_nls_key_messagebox(self):
+        QMessageBox.critical(
+            self.iface.mainWindow(),
+            self.tr("User-key is needed"),
+            self.tr("Data cannot be downloaded without the NLS key"),
+        )
+
     def show_settings_dialog(self):
+        has_nls_key = (self.get_nls_user_key() != "")
         self.nls_user_key_dialog.dataLocationQgsFileWidget.setStorageMode(
             QgsFileWidget.GetDirectory
         )
@@ -895,14 +906,10 @@ class NLSGeoPackageLoader:
         self.nls_user_key_dialog.show()
         result = self.nls_user_key_dialog.exec_()
         if result:
-            self.nls_user_key = self.nls_user_key_dialog.userKeyLineEdit.text().strip()
+            self.nls_user_key = self.get_nls_user_key()
             if self.nls_user_key == "":
                 # cannot work without the key, so user needs to be notified
-                QMessageBox.critical(
-                    self.iface.mainWindow(),
-                    self.tr("User-key is needed"),
-                    self.tr("Data cannot be downloaded without the NLS key"),
-                )
+                self.show_missing_nls_key_messagebox()
                 return False
             self.data_download_dir = (
                 self.nls_user_key_dialog.dataLocationQgsFileWidget.filePath()
@@ -914,11 +921,8 @@ class NLSGeoPackageLoader:
 
         else:
             # cannot work without the key, so user needs to be notified
-            QMessageBox.critical(
-                self.iface.mainWindow(),
-                self.tr("User-key is needed"),
-                self.tr("Data cannot be downloaded without the NLS key"),
-            )
+            if not has_nls_key:
+                self.show_missing_nls_key_messagebox()
             return False
 
     def create_download_urls(self, product_key, product_title):
