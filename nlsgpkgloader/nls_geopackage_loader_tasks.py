@@ -20,7 +20,10 @@
 import os
 import sqlite3
 
-from osgeo import ogr
+from osgeo import ogr, gdal
+from qgis.core import QgsTask, QgsMessageLog, QgsVectorLayer, QgsVectorFileWriter, QgsField
+from PyQt5.QtCore import QVariant
+from pathlib import Path
 from qgis import processing
 from qgis.core import (
     QgsFeature,
@@ -30,7 +33,9 @@ from qgis.core import (
     QgsTask,
     QgsVectorFileWriter,
     QgsVectorLayer,
+    QgsField,
 )
+from PyQt5.QtCore import QVariant
 
 from nlsgpkgloader.qgis_plugin_tools.tools.resources import resources_path
 
@@ -43,115 +48,93 @@ class CreateGeoPackageTask(QgsTask):
         self.all_urls = urls
         self.total_download_count = dlcount
         self.products = products
-        self.data_download_dir = dlpath
-        self.gpkg_path = path
+        self.data_download_dir = Path(dlpath)
+        self.gpkg_path = Path(path)
 
     def run(self):
-        for dl_index in range(0, self.total_download_count):
-            url = self.all_urls[dl_index][0]
-            url_parts = url.split("/")
-            file_name = url_parts[-1].split("?")[0]
-            data_dir_name = self.all_urls[dl_index][1]
-            data_dir_name = data_dir_name.replace(":", "_suhde_")
-            dir_path = os.path.join(self.data_download_dir, data_dir_name)
-            dir_path = os.path.join(dir_path, file_name.split(".")[0])
-            data_type = self.all_urls[dl_index][3]
+        gdal.UseExceptions()
+        all_gml_files = []
+        try:
+            for dl_index in range(0, self.total_download_count):
+                url = self.all_urls[dl_index][0]
+                url_parts = url.split("/")
+                file_name = url_parts[-1].split("?")[0]
+                data_dir_name = self.all_urls[dl_index][1]
+                data_dir_name = data_dir_name.replace(":", "_suhde_")
+                dir_path = self.data_download_dir / data_dir_name / file_name.split(".")[0]
+                data_type = self.all_urls[dl_index][3]
 
-            percentage = dl_index / float(self.total_download_count) * 100.0
-            self.setProgress(percentage)
+                percentage = dl_index / float(self.total_download_count) * 100.0
+                self.setProgress(percentage)
 
-            if not os.path.exists(dir_path):
-                QgsMessageLog.logMessage(
-                    "Skipping directory: " + dir_path, "NLSgpkgloader", 1
-                )
-                continue
+                if not dir_path.exists():
+                    QgsMessageLog.logMessage("Skipping directory: " + str(dir_path), "NLSgpkgloader", 1)
+                    continue
 
-            for listed_file_name in os.listdir(dir_path):
-                if data_type == "gml" and listed_file_name.endswith(".xml"):
-                    driver = ogr.GetDriverByName("GML")
-                    data_source = driver.Open(
-                        os.path.join(dir_path, listed_file_name), 0
-                    )
-                    layer_count = data_source.GetLayerCount()
+                for listed_file_name in dir_path.iterdir():
+                    if data_type == "gml" and listed_file_name.suffix == ".xml":
+                        all_gml_files.append(listed_file_name)
 
-                    mtk_layer_count = 0  # Used for breaking from the for loop
-                    # when all MTK layers chosen by the user have been added
-                    for i in range(layer_count):
-                        if self.isCanceled():
-                            return False
-                        layer = data_source.GetLayerByIndex(i)
-                        layer_name = layer.GetName()
-                        if layer_name in self.products:
-                            new_layer = QgsVectorLayer(
-                                os.path.join(dir_path, listed_file_name)
-                                + "|layerid="
-                                + str(i),
-                                layer_name,
-                                "ogr",
-                            )
-                            if new_layer.isValid():
-                                options = QgsVectorFileWriter.SaveVectorOptions()
-                                options.layerName = layer_name
-                                options.driverName = "GPKG"
-                                options.fileEncoding = "UTF-8"
-                                if os.path.isfile(self.gpkg_path):
-                                    if QgsVectorLayer(
-                                        self.gpkg_path + "|layername=" + layer_name
-                                    ).isValid():
-                                        options.actionOnExistingFile = (
-                                            QgsVectorFileWriter.AppendToLayerNoNewFields
-                                        )
-                                    else:
-                                        options.actionOnExistingFile = (
-                                            QgsVectorFileWriter.CreateOrOverwriteLayer
-                                        )
-                                else:
-                                    options.actionOnExistingFile = (
-                                        QgsVectorFileWriter.CreateOrOverwriteFile
-                                    )
-                                e = QgsVectorFileWriter.writeAsVectorFormat(
-                                    new_layer, self.gpkg_path, options
-                                )
-                                if e[0]:
-                                    QgsMessageLog.logMessage(
-                                        "Failed to write layer "
-                                        + layer_name
-                                        + " to geopackage",
-                                        "NLSgpkgloader",
-                                        2,
-                                    )
-                                    break
-                                mtk_layer_count += 1
-                            else:
-                                layer_name = ""
-                                # TODO: handle invalid layer error
-                                # QgsMessageLog.logMessage(
-                                #     "Invalid layer: {} : {}".format(
-                                #         listed_file_name, layer_name
-                                #     ),
-                                #     "NLSgpkgloader",
-                                #     2,
-                                # )
-                                pass
+            if all_gml_files:
+                merge_gmls(all_gml_files, self.gpkg_path)
 
-                        if mtk_layer_count == len(self.products):
-                            break
-                else:
-                    QgsMessageLog.logMessage(
-                        "cannot add the data type "
-                        + data_type
-                        + ", listed_file_name: "
-                        + listed_file_name,
-                        "NLSgpkgloader",
-                        0,
-                    )
-        return True
+            return True
+
+        except Exception as e:
+            QgsMessageLog.logMessage(f"Error: {str(e)}", "NLSgpkgloader", 2)
+            return False
 
     def finished(self, result):
         if not result:
-            QgsMessageLog.logMessage(
-                "Writing GML to GPKG: task canceled", "NLSgpkgloader", 1
+            QgsMessageLog.logMessage("Writing GML to GPKG: task canceled", "NLSgpkgloader", 1)
+
+
+def merge_gmls(gmls: list[Path], output: Path) -> None:
+    gdal.UseExceptions()
+
+    try:
+        gpkg_driver = ogr.GetDriverByName("GPKG")
+        if not output.exists():
+            gpkg_driver.CreateDataSource(str(output))
+        creation_options = gdal.VectorTranslateOptions(
+            layerCreationOptions=[
+                "FID=id",
+                "GEOMETRY_NAME=geom",
+                "SPATIAL_INDEX=NONE"
+            ],
+            mapFieldType="StringList=String",
+        )
+        append_options = gdal.VectorTranslateOptions(
+            accessMode="append",
+            mapFieldType="StringList=String",
+        )
+        for i, gml in enumerate(gmls):
+            QgsMessageLog.logMessage(f"Processing GML file: {gml}", "NLSgpkgloader", 1)
+
+            source_datasource = gdal.OpenEx(
+                str(gml),
+                nOpenFlags=gdal.OF_VECTOR,
             )
+
+            if source_datasource is None:
+                QgsMessageLog.logMessage(f"Failed to open GML file: {gml}", "NLSgpkgloader", 2)
+                continue
+            QgsMessageLog.logMessage(f"Merging into GeoPackage: {output}", "NLSgpkgloader", 1)
+            options = creation_options if i == 0 else append_options
+
+            result = gdal.VectorTranslate(
+                destNameOrDestDS=str(output),
+                srcDS=source_datasource,
+                options=options,
+            )
+            if not result:
+                QgsMessageLog.logMessage(f"Merge failed for GML file: {gml}", "NLSgpkgloader", 2)
+            else:
+                QgsMessageLog.logMessage(f"Successfully merged GML file: {gml} into {output}", "NLSgpkgloader", 1)
+
+    except Exception as e:
+        QgsMessageLog.logMessage(f"Error merging GML files: {str(e)}", "NLSgpkgloader", 2)
+        raise e
 
 
 class DissolveFeaturesTask(QgsTask):
