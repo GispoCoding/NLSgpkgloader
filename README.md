@@ -28,6 +28,10 @@ This plugin is available from the official plugin repository and can be installe
 
 <img width="500" alt="Project view" src="documentation/project.png">
 
+## Requirements
+
+- **GDAL 3.7 or higher.**
+
 ## Usage and installation
 
 Please read [Instructions.md](documentation/instructions.md) for more information.
