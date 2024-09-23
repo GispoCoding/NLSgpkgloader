@@ -17,13 +17,10 @@
 #  You should have received a copy of the GNU General Public License
 #  along with NLSgpkgloadert.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
 import sqlite3
-
-from osgeo import ogr, gdal
-from qgis.core import QgsTask, QgsMessageLog, QgsVectorLayer, QgsVectorFileWriter, QgsField
-from PyQt5.QtCore import QVariant
 from pathlib import Path
+
+from osgeo import gdal, ogr
 from qgis import processing
 from qgis.core import (
     QgsFeature,
@@ -31,11 +28,8 @@ from qgis.core import (
     QgsMessageLog,
     QgsProcessingContext,
     QgsTask,
-    QgsVectorFileWriter,
     QgsVectorLayer,
-    QgsField,
 )
-from PyQt5.QtCore import QVariant
 
 from nlsgpkgloader.qgis_plugin_tools.tools.resources import resources_path
 
@@ -61,14 +55,18 @@ class CreateGeoPackageTask(QgsTask):
                 file_name = url_parts[-1].split("?")[0]
                 data_dir_name = self.all_urls[dl_index][1]
                 data_dir_name = data_dir_name.replace(":", "_suhde_")
-                dir_path = self.data_download_dir / data_dir_name / file_name.split(".")[0]
+                dir_path = (
+                    self.data_download_dir / data_dir_name / file_name.split(".")[0]
+                )
                 data_type = self.all_urls[dl_index][3]
 
                 percentage = dl_index / float(self.total_download_count) * 100.0
                 self.setProgress(percentage)
 
                 if not dir_path.exists():
-                    QgsMessageLog.logMessage("Skipping directory: " + str(dir_path), "NLSgpkgloader", 1)
+                    QgsMessageLog.logMessage(
+                        "Skipping directory: " + str(dir_path), "NLSgpkgloader", 1
+                    )
                     continue
 
                 for listed_file_name in dir_path.iterdir():
@@ -86,7 +84,9 @@ class CreateGeoPackageTask(QgsTask):
 
     def finished(self, result):
         if not result:
-            QgsMessageLog.logMessage("Writing GML to GPKG: task canceled", "NLSgpkgloader", 1)
+            QgsMessageLog.logMessage(
+                "Writing GML to GPKG: task canceled", "NLSgpkgloader", 1
+            )
 
 
 def merge_gmls(gmls: list[Path], output: Path) -> None:
@@ -97,11 +97,7 @@ def merge_gmls(gmls: list[Path], output: Path) -> None:
         if not output.exists():
             gpkg_driver.CreateDataSource(str(output))
         creation_options = gdal.VectorTranslateOptions(
-            layerCreationOptions=[
-                "FID=id",
-                "GEOMETRY_NAME=geom",
-                "SPATIAL_INDEX=NONE"
-            ],
+            layerCreationOptions=["FID=id", "GEOMETRY_NAME=geom", "SPATIAL_INDEX=NONE"],
             mapFieldType="StringList=String",
         )
         append_options = gdal.VectorTranslateOptions(
@@ -117,9 +113,13 @@ def merge_gmls(gmls: list[Path], output: Path) -> None:
             )
 
             if source_datasource is None:
-                QgsMessageLog.logMessage(f"Failed to open GML file: {gml}", "NLSgpkgloader", 2)
+                QgsMessageLog.logMessage(
+                    f"Failed to open GML file: {gml}", "NLSgpkgloader", 2
+                )
                 continue
-            QgsMessageLog.logMessage(f"Merging into GeoPackage: {output}", "NLSgpkgloader", 1)
+            QgsMessageLog.logMessage(
+                f"Merging into GeoPackage: {output}", "NLSgpkgloader", 1
+            )
             options = creation_options if i == 0 else append_options
 
             result = gdal.VectorTranslate(
@@ -128,12 +128,20 @@ def merge_gmls(gmls: list[Path], output: Path) -> None:
                 options=options,
             )
             if not result:
-                QgsMessageLog.logMessage(f"Merge failed for GML file: {gml}", "NLSgpkgloader", 2)
+                QgsMessageLog.logMessage(
+                    f"Merge failed for GML file: {gml}", "NLSgpkgloader", 2
+                )
             else:
-                QgsMessageLog.logMessage(f"Successfully merged GML file: {gml} into {output}", "NLSgpkgloader", 1)
+                QgsMessageLog.logMessage(
+                    f"Successfully merged GML file: {gml} into {output}",
+                    "NLSgpkgloader",
+                    1,
+                )
 
     except Exception as e:
-        QgsMessageLog.logMessage(f"Error merging GML files: {str(e)}", "NLSgpkgloader", 2)
+        QgsMessageLog.logMessage(
+            f"Error merging GML files: {str(e)}", "NLSgpkgloader", 2
+        )
         raise e
 
 

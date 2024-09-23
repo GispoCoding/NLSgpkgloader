@@ -30,7 +30,7 @@ This plugin is available from the official plugin repository and can be installe
 
 ## Requirements
 
-- **QGIS 3.34.11 or higher**
+- **GDAL 3.7 or higher.**
 
 ## Usage and installation
 
