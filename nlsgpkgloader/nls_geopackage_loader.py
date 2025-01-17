@@ -52,6 +52,7 @@ from nlsgpkgloader.nls_geopackage_loader_mtk_productdata import (
 from nlsgpkgloader.nls_geopackage_loader_tasks import (
     CleanUpTask,
     ClipLayersTask,
+    ConvertStringListToStringTask,
     CreateGeoPackageTask,
     DissolveFeaturesTask,
 )
@@ -836,11 +837,15 @@ class NLSGeoPackageLoader:
             self.data_download_dir,
             self.gpkg_path,
         )
+        conversion_task = ConvertStringListToStringTask(
+            "Convert StringLists", self.gpkg_path
+        )
         dissolve_task = DissolveFeaturesTask("Dissolve features", self.gpkg_path)
         clip_task = ClipLayersTask("Clip layers", self.selected_geoms, self.gpkg_path)
         cleanup_task = CleanUpTask("Delete temporary tables", self.path, self.gpkg_path)
 
-        write_task.taskCompleted.connect(lambda: self.run_task(dissolve_task))
+        write_task.taskCompleted.connect(lambda: self.run_task(conversion_task))
+        conversion_task.taskCompleted.connect(lambda: self.run_task(dissolve_task))
         dissolve_task.taskCompleted.connect(lambda: self.run_task(clip_task))
         clip_task.taskCompleted.connect(lambda: self.run_task(cleanup_task))
         cleanup_task.taskCompleted.connect(lambda: self.finish_processing())

@@ -25,12 +25,14 @@ from qgis import processing
 from qgis.core import (
     QgsFeature,
     QgsFeatureRequest,
+    QgsField,
     QgsMessageLog,
     QgsProcessingContext,
     QgsTask,
     QgsVectorFileWriter,
     QgsVectorLayer,
 )
+from qgis.PyQt.QtCore import QVariant
 
 from nlsgpkgloader.qgis_plugin_tools.tools.resources import resources_path
 
@@ -152,6 +154,125 @@ class CreateGeoPackageTask(QgsTask):
             QgsMessageLog.logMessage(
                 "Writing GML to GPKG: task canceled", "NLSgpkgloader", 1
             )
+
+
+class ConvertStringListToStringTask(QgsTask):
+    def __init__(self, description, gpkg_path):
+        super().__init__(description, QgsTask.CanCancel)
+        self.gpkg_path = gpkg_path
+
+    def run(self):
+        conn = ogr.Open(self.gpkg_path, update=True)
+        if not conn:
+            QgsMessageLog.logMessage("Failed to open GeoPackage", "NLSgpkgloader", 2)
+            return False
+
+        total_tables = conn.GetLayerCount()
+        for i in range(total_tables):
+            table = conn.GetLayerByIndex(i)
+            table_name = table.GetName()
+            if table_name not in MTK_PRODUCT_NAMES:
+                continue
+
+            if not self.convert_layer(table, table_name):  # Pass table_name here
+                return False
+            self.setProgress((i + 1) / float(total_tables) * 100.0)
+            if self.isCanceled():
+                return False
+
+        return True
+
+    def convert_layer(self, layer, table_name):
+        feature_defn = layer.GetLayerDefn()
+        field_count = feature_defn.GetFieldCount()
+        string_list_fields = []
+
+        # Identify fields that need conversion
+        for idx in range(field_count):
+            field = feature_defn.GetFieldDefn(idx)
+            field_name = field.GetName()
+
+            for feature in layer.getFeatures():  # Use QGIS API
+                sample_value = feature[field_name]
+                if isinstance(sample_value, list) or (
+                    isinstance(sample_value, str) and "," in sample_value
+                ):
+                    string_list_fields.append(field_name)
+                    QgsMessageLog.logMessage(
+                        f"Field {field_name} needs conversion in layer {table_name}.",
+                        "NLSgpkgloader",
+                        2,
+                    )
+                    break  # No need to check further if one list is found
+
+        if string_list_fields:
+            provider = layer.dataProvider()
+
+            # Create new fields
+            for field_name in string_list_fields:
+                new_field_name = f"{field_name}_fixed"
+                new_field = QgsField(new_field_name, QVariant.String)
+                provider.addAttributes([new_field])
+                QgsMessageLog.logMessage(
+                    f"New field {new_field_name} created in layer {table_name}.",
+                    "NLSgpkgloader",
+                    2,
+                )
+
+            layer.updateFields()  # Ensure changes are reflected in the layer
+
+            # Update features with converted values
+            layer.startEditing()
+            for feature in layer.getFeatures():
+                for field_name in string_list_fields:
+                    original_value = feature[field_name]
+                    if isinstance(original_value, list):
+                        new_value = ", ".join(original_value)
+                    elif isinstance(original_value, str):
+                        new_value = original_value
+                    else:
+                        new_value = ""
+
+                    feature[f"{field_name}_fixed"] = new_value
+                layer.updateFeature(feature)
+
+            # Remove original fields and rename new ones
+            for field_name in string_list_fields:
+                original_field_idx = layer.fields().indexFromName(field_name)
+                fixed_field_idx = layer.fields().indexFromName(f"{field_name}_fixed")
+
+                if original_field_idx != -1:
+                    provider.deleteAttributes([original_field_idx])
+                    QgsMessageLog.logMessage(
+                        f"Original field {field_name} deleted from layer {table_name}.",
+                        "NLSgpkgloader",
+                        2,
+                    )
+
+                layer.updateFields()  # Ensure changes are reflected
+
+                if fixed_field_idx != -1:
+                    layer.renameAttribute(fixed_field_idx, field_name)
+                    QgsMessageLog.logMessage(
+                        f"Field {field_name}_fixed renamed to {field_name} in layer {table_name}.",
+                        "NLSgpkgloader",
+                        2,
+                    )
+
+            layer.commitChanges()
+            QgsMessageLog.logMessage(
+                f"Layer transaction committed for layer {table_name}.",
+                "NLSgpkgloader",
+                2,
+            )
+        else:
+            QgsMessageLog.logMessage(
+                f"No fields needed conversion in layer {table_name}.",
+                "NLSgpkgloader",
+                2,
+            )
+
+        return True
 
 
 class DissolveFeaturesTask(QgsTask):
