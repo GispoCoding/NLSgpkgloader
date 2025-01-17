@@ -55,6 +55,7 @@ from nlsgpkgloader.nls_geopackage_loader_tasks import (
     CreateGeoPackageTask,
     DissolveFeaturesTask,
 )
+from nlsgpkgloader.qgis_plugin_tools.tools.messages import MsgBar
 from nlsgpkgloader.qgis_plugin_tools.tools.resources import resources_path
 from nlsgpkgloader.qgis_plugin_tools.tools.settings import get_setting, set_setting
 from nlsgpkgloader.ui import (
@@ -739,6 +740,13 @@ class NLSGeoPackageLoader:
             # TODO: warn user of certification fail
             self.verify = False
             r = requests.get(url, verify=self.verify)
+
+        if r.status_code == 403:
+            self.iface.messageBar().pushWarning(
+                self.tr("Request to maanmittauslaitos.fi was forbidden"),
+                self.tr("Please check your api_key"),
+            )
+            return products
 
         e = xml.etree.ElementTree.fromstring(r.text)
 
