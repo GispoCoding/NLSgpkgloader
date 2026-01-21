@@ -256,6 +256,17 @@ class NLSGeoPackageLoader:
 
         self.product_types = self.download_nls_product_types()
 
+        # If product types download failed (invalid key or other error), prompt for settings
+        if self.product_types is None:
+            res = self.show_settings_dialog()
+            if not res:
+                return
+            # Try downloading product types again with the new key
+            self.product_types = self.download_nls_product_types()
+            if self.product_types is None:
+                # Still failed, give up
+                return
+
         self.municipalities_dialog = NLSGeoPackageLoaderMunicipalitySelectionDialog()
 
         self.municipalities_dialog.settingsPushButton.clicked.connect(
@@ -739,8 +750,58 @@ class NLSGeoPackageLoader:
             # TODO: warn user of certification fail
             self.verify = False
             r = requests.get(url, verify=self.verify)
+        except requests.exceptions.RequestException as e:
+            QgsMessageLog.logMessage(
+                "Failed to connect to NLS service: " + str(e), "NLSgpkgloader", 2
+            )
+            QMessageBox.critical(
+                self.iface.mainWindow(),
+                self.tr("Connection Error"),
+                self.tr(
+                    "Failed to connect to NLS service. Please check your internet connection."
+                ),
+            )
+            return None
 
-        e = xml.etree.ElementTree.fromstring(r.text)
+        # Check if the request was successful
+        if r.status_code != 200:
+            QgsMessageLog.logMessage(
+                "Invalid API key or service error. Status code: " + str(r.status_code),
+                "NLSgpkgloader",
+                2,
+            )
+            # Clear the invalid key from settings
+            set_setting("userKey", "")
+            self.nls_user_key = ""
+            QMessageBox.critical(
+                self.iface.mainWindow(),
+                self.tr("Invalid API Key"),
+                self.tr(
+                    "The provided API key is invalid or the service is unavailable. "
+                    "Please check your API key and try again."
+                ),
+            )
+            return None
+
+        # Try to parse the XML response
+        try:
+            e = xml.etree.ElementTree.fromstring(r.text)
+        except xml.etree.ElementTree.ParseError as parse_error:
+            QgsMessageLog.logMessage(
+                "Failed to parse XML response: " + str(parse_error), "NLSgpkgloader", 2
+            )
+            # Clear the invalid key from settings
+            set_setting("userKey", "")
+            self.nls_user_key = ""
+            QMessageBox.critical(
+                self.iface.mainWindow(),
+                self.tr("Invalid API Response"),
+                self.tr(
+                    "The API returned an invalid response. Your API key may be incorrect. "
+                    "Please verify your API key and try again."
+                ),
+            )
+            return None
 
         for entry in e.findall("{http://www.w3.org/2005/Atom}entry"):
             title = entry.find("{http://www.w3.org/2005/Atom}title")
@@ -778,8 +839,24 @@ class NLSGeoPackageLoader:
 
         url = self.all_urls[self.download_count][0]
         # QgsMessageLog.logMessage(url, 'NLSgpkgloader', 0)
-        r = requests.get(url, stream=True, verify=self.verify)
-        # TODO check r.status_code & r.ok
+        try:
+            r = requests.get(url, stream=True, verify=self.verify)
+            r.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            QgsMessageLog.logMessage(
+                "Failed to download file: " + str(e), "NLSgpkgloader", 2
+            )
+            self.progress_dialog.hide()
+            QMessageBox.critical(
+                self.iface.mainWindow(),
+                self.tr("Download Error"),
+                self.tr(
+                    "Failed to download file from NLS service. "
+                    "This may indicate an invalid API key or network issue.\n\n"
+                    "Error: {}"
+                ).format(str(e)),
+            )
+            return
 
         url_parts = url.split("/")
         file_name = url_parts[-1].split("?")[0]
