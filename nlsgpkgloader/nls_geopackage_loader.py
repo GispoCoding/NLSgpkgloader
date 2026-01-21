@@ -256,7 +256,7 @@ class NLSGeoPackageLoader:
 
         self.product_types = self.download_nls_product_types()
 
-        # If product types download failed (invalid key or other error), prompt for settings
+        # If product types download failed, prompt for settings
         if self.product_types is None:
             res = self.show_settings_dialog()
             if not res:
@@ -758,7 +758,8 @@ class NLSGeoPackageLoader:
                 self.iface.mainWindow(),
                 self.tr("Connection Error"),
                 self.tr(
-                    "Failed to connect to NLS service. Please check your internet connection."
+                    "Failed to connect to NLS service. "
+                    "Please check your internet connection."
                 ),
             )
             return None
@@ -797,7 +798,8 @@ class NLSGeoPackageLoader:
                 self.iface.mainWindow(),
                 self.tr("Invalid API Response"),
                 self.tr(
-                    "The API returned an invalid response. Your API key may be incorrect. "
+                    "The API returned an invalid response. "
+                    "Your API key may be incorrect. "
                     "Please verify your API key and try again."
                 ),
             )
